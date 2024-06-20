@@ -126,6 +126,7 @@ void test_gmt(T *ot, int party, int64_t length, int64_t n) {
     for (int i = n+1 ; i < length ; i++) {
         a = hot + singleton[i] ;
         prg.random_block(r, 1) ;
+        stretch_bool(b_stretched, *b, 1) ;
 
         b_blk = hot + remaining[i] ;
         *b = get_bool_from_block(b_blk) ;
@@ -145,6 +146,16 @@ void test_gmt(T *ot, int party, int64_t length, int64_t n) {
         xorBlocks_arr(loc, andd, rcv, 1) ;
         xorBlocks_arr(hot+i, loc, r, 1) ;
     }
+
+    delete[] a ;
+    delete[] a_masked ;
+    delete[] r ;
+    delete[] b_blk ;
+    delete[] b_stretched ;
+    delete[] rcv ;
+    delete[] andd ;
+    delete[] loc ;
+    delete[] b ;
 }
 
 
