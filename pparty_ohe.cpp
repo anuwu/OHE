@@ -148,6 +148,106 @@ public :
         }
     }
 
+    int64_t test_gmt() {
+        unordered_map<int, vector<vector<int>>> mp ;
+        unordered_map<int, int> singleton ;
+        unordered_map<int, int> remaining ;
+
+        int n = this->loglength ;
+
+        mp = get_subsets(n) ;
+        for (int i = 2 ; i < n+1 ; i++) {
+            for (int j = 0 ; j < (int)mp[i].size() ; j++) {
+                vector<int> vec = mp[i][j] ;
+                int totrnk = total_rank(vec, n) ;
+                singleton[totrnk] = vec[0] ; 
+                vector<int> cop = vec ; cop.erase(cop.begin()) ; remaining[totrnk] = total_rank(cop, n) ;
+            }
+        }
+
+        PRG prg ;
+        block *hot = new block[this->length] ; 
+        prg.random_block(hot+1, n) ;
+
+        block *a, *b_blk, *b_stretched, *andd, *loc, *loc_tmp, *fin, *fin_tmp ;
+        unordered_map<int, block*> r, rcv, a_masked ;
+        bool *b ;
+
+        b_stretched = new block[1] ; 
+        andd = new block[1]; 
+        loc = new block[1] ; loc_tmp = new block[1] ;
+        fin = new block[1] ; fin_tmp = new block[1] ;
+        b = new bool[1] ;
+
+        for (auto it = this->robin.begin() ; it != this->robin.end() ; it++) {
+            int p1 = it->first, p2 = it->second ;
+
+            r[p1 == party ? p2 : p1] = new block[1] ;
+            rcv[p1 == party ? p2 : p1] = new block[1] ;
+            a_masked[p1 == party ? p2 : p1] = new block[1] ;
+        }
+
+        for (int i = n+1 ; i < this->length ; i++) {
+            a = hot + singleton[i] ;
+
+            b_blk = hot + remaining[i] ;
+            *b = get_bool_from_block(b_blk) ;
+            stretch_bool(b_stretched, *b, 1) ;
+
+            ThreadPool pool(this->parties - 1) ;
+
+            for (auto it = this->robin.begin() ; it != this->robin.end() ; it++) {
+                int p1 = it->first, p2 = it->second ;
+                int wh = p1 == party ? p2 : p1 ;
+                prg.random_block(r[wh], 1) ;
+                xorBlocks_arr(a_masked[wh], a, r[wh], 1) ;
+
+                // cout << "Targetting party " << wh << "\n" ;
+                if (p1 == party) {
+                    // cout << i << "--> SR : " << this->party << "-" << p << "\n" ; 
+                    this->ots[wh]->send(r[wh], a_masked[wh], 1) ; this->ots[wh]->io->flush() ;
+                    this->ots[wh]->recv(rcv[wh], b, 1) ;
+                } else {
+                    // cout << i << "--> RS : " << p << "-" << this->party << "\n" ;
+                    this->ots[wh]->recv(rcv[wh], b, 1) ; this->ots[wh]->io->flush() ;
+                    this->ots[wh]->send(r[wh], a_masked[wh], 1) ; 
+                }
+                this->ots[wh]->io->flush() ;
+            }
+
+            // Computing final share
+            andBlocks_arr(andd, a, b_stretched, 1) ;
+            copyBlocks_arr(loc_tmp, andd, 1) ;
+            for (int p = 1 ; p <= this->parties ; p++) {
+                if (p == this->party)
+                    continue ;
+
+                xorBlocks_arr(loc, loc_tmp, rcv[p], 1) ;
+                copyBlocks_arr(loc_tmp, loc, 1) ;
+            }
+            copyBlocks_arr(fin_tmp, loc, 1) ;
+            for (int p = 1 ; p <= this->parties ; p++) {
+                if (p == this->party)
+                    continue ;
+
+                xorBlocks_arr(fin, fin_tmp, r[p], 1) ;
+                copyBlocks_arr(fin_tmp, fin, 1) ;
+            }
+
+            copyBlocks_arr(hot+i, fin, 1) ;
+        }
+
+        int64_t total_comms = 0 ;
+        for (int p = 1 ; p <= this->parties ; p++) {
+            if (p == this->party)
+                continue ;
+
+            total_comms += this->ots[p]->io->counter ;
+        }
+            
+        return total_comms ;
+    }
+
     int64_t test_gmt_threaded() {
         unordered_map<int, vector<vector<int>>> mp ;
         unordered_map<int, int> singleton ;
@@ -190,7 +290,6 @@ public :
 
         for (int i = n+1 ; i < this->length ; i++) {
             a = hot + singleton[i] ;
-            // prg.random_block(r, 1) ;
 
             b_blk = hot + remaining[i] ;
             *b = get_bool_from_block(b_blk) ;
@@ -205,17 +304,19 @@ public :
                 prg.random_block(r[p], 1) ;
                 xorBlocks_arr(a_masked[p], a, r[p], 1) ;
 
-                cout << "Targetting party " << p << "\n" ;
+                // cout << "Targetting party " << p << "\n" ;
                 pool.enqueue([i, p, this, &r, &a_masked, b, &rcv] {
-                    this->ots[p]->io->sync() ;
                     if (this->party < p) {
-                        cout << i << "--> SR : " << this->party << "-" << p << "\n" ; 
+                        this->ots[p]->io->sync() ;
+                        // cout << i << "--> SR : " << this->party << "-" << p << "\n" ; 
                         this->ots[p]->send(r[p], a_masked[p], 1) ; this->ots[p]->io->flush() ;
                         this->ots[p]->recv(rcv[p], b, 1) ;
+                        this->ots[p]->io->sync() ;
                     } else {
-                        cout << i << "--> RS : " << p << "-" << this->party << "\n" ;
+                        // cout << i << "--> RS : " << p << "-" << this->party << "\n" ;
                         this->ots[p]->recv(rcv[p], b, 1) ; this->ots[p]->io->flush() ;
                         this->ots[p]->send(r[p], a_masked[p], 1) ; 
+                        this->ots[p]->io->sync() ;
                     }
                     this->ots[p]->io->flush() ;
                 }) ;
@@ -223,7 +324,6 @@ public :
 
             // Computing final share
             andBlocks_arr(andd, a, b_stretched, 1) ;
-            // xorBlocks_arr(loc, andd, rcv, 1) ;  // All rcv[p] 
             copyBlocks_arr(loc_tmp, andd, 1) ;
             for (int p = 1 ; p <= this->parties ; p++) {
                 if (p == this->party)
@@ -232,8 +332,6 @@ public :
                 xorBlocks_arr(loc, loc_tmp, rcv[p], 1) ;
                 copyBlocks_arr(loc_tmp, loc, 1) ;
             }
-            
-            // xorBlocks_arr(hot+i, loc, r, 1) ;   // All r[p] 
             copyBlocks_arr(fin_tmp, loc, 1) ;
             for (int p = 1 ; p <= this->parties ; p++) {
                 if (p == this->party)
@@ -342,56 +440,59 @@ int main(int argc, char** argv) {
     vector<pair<int,int>> robin ;
     robin = get_round_robin_scheme(party, parties) ;
 
-    // cout << "The robin is -\n" ;
-    // for (auto &it : robin)
-    //     cout << "(" << it.first << ", " << it.second << ")\n" ;
-    // unordered_map<int, NetIO*> ios = get_pairwise_channels(party, parties, start_port, robin) ;
-    unordered_map<int, NetIO*> ios = get_pairwise_channels_threaded(party, parties, start_port) ;
+    unordered_map<int, NetIO*> ios = get_pairwise_channels(party, parties, start_port, robin) ;
+    // unordered_map<int, NetIO*> ios = get_pairwise_channels_threaded(party, parties, start_port) ;
 
+    auto start = clock_start(); int64_t comms ;
     if (ot_type == "otnp") {
         unordered_map<int, OTNP<NetIO>*> ots ;
         for (auto &it : ios)
             ots[it.first] = new OTNP<NetIO>(it.second) ;
         Coordinator<OTNP<NetIO>> cood(party, parties, length, loglength, robin, ots) ;
-        cout << "Created OTNP coordinator\n" ;
-        // cood.dummy_ots() ;
-        // cood.dummy_ots_threaded() ;
-        int64_t comms = cood.test_gmt_threaded() ; cout << "Total comms : " << comms << "\n" ;
+        // cout << "Created OTNP coordinator\n" ;
+        if (tool == 0)
+            comms = cood.test_gmt_threaded() ; // cout << "Total comms : " << comms << "\n" ;
     }
     else if (ot_type == "iknp") {
         unordered_map<int, IKNP<NetIO>*> ots ;
         for (auto &it : ios)
             ots[it.first] = new IKNP<NetIO>(it.second) ;
         Coordinator<IKNP<NetIO>> cood(party, parties, length, loglength, robin, ots) ;
-        cout << "Created INKP coordinator\n" ;
-        // cood.dummy_ots() ;
-        // cood.dummy_ots_threaded() ;
-        int64_t comms = cood.test_gmt_threaded() ; cout << "Total comms : " << comms << "\n" ;
+        // cout << "Created INKP coordinator\n" ;
+        if (tool == 0)
+            comms = cood.test_gmt_threaded() ; // cout << "Total comms : " << comms << "\n" ;
     }
     else if (ot_type == "simple") {
         unordered_map<int, OTCO<NetIO>*> ots ;
         for (auto &it : ios)
             ots[it.first] = new OTCO<NetIO>(it.second) ;
         Coordinator<OTCO<NetIO>> cood(party, parties, length, loglength, robin, ots) ;
-        cout << "Created OTCO coordinator\n" ;
-        // cood.dummy_ots() ;
-        // cood.dummy_ots_threaded() ;
-        int64_t comms = cood.test_gmt_threaded() ; cout << "Total comms : " << comms << "\n" ;
+        // cout << "Created OTCO coordinator\n" ;
+        if (tool == 0)
+            comms = cood.test_gmt_threaded() ; // cout << "Total comms : " << comms << "\n" ;
     }
     else if (ot_type == "ferret") {
         unordered_map<int, FerretCOT<NetIO>*> ots ;
-        for (auto &it : ios)
-            ots[it.first] = new FerretCOT<NetIO>(party, threads, &it.second, false) ;
+        for (auto &it : ios) {
+            cout << "Party " << party << " connected to " << it.first ;
+            ots[it.first] = new FerretCOT<NetIO>(party < it.first ? ALICE : BOB, threads, &it.second, false) ;
+            cout << " --> done\n" ;
+        }
+            
         Coordinator<FerretCOT<NetIO>> cood(party, parties, length, loglength, robin, ots) ;
         cout << "Created Ferret coordinator\n" ;
-        // cood.dummy_ots() ;
-        // cood.dummy_ots_threaded() ;
-        int64_t comms = cood.test_gmt_threaded() ; cout << "Total comms : " << comms << "\n" ;
+        if (tool == 0)
+            comms = cood.test_gmt() ;   
+            // comms = cood.test_gmt_threaded() ; // cout << "Total comms : " << comms << "\n" ;
     } else {
         exit(1) ;
     }
     
-    cout << "Done with dummy OTs\n" ;
+    // cout << "Done with dummy OTs\n" ;
+    std::setprecision(2) ;
+    long long t = time_from(start);    
+    std::cout << std::fixed << std::setprecision(2) << "Time taken : " << double(t)/1e3 << " ms\n" ;
+    std::cout << std::fixed << std::setprecision(2) << "Comm : " << comms << " bytes\n" ;
 
     return 0 ;
 }

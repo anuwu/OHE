@@ -14,13 +14,14 @@ def extract(st) :
 
 if __name__ == "__main__" :
     party = sys.argv[1]
+    tool = sys.argv[2]
 
     dic = {}
     dic["Lengths"] = [str(2**x) for x in range(2, 17)]
     for ot in ["simple", "iknp", "otnp", "ferret"] :
         col_time, col_comm = [], []
         for length in range(2, 17) :
-            call_string = f"./build/test {party} 12345 {length} {ot} 0"
+            call_string = f"./build/test {party} 12345 {length} {ot} {tool}"
             st = str(subprocess.check_output(["zsh", "-c", call_string]))
             time, comm = extract(str(st))
             col_time.append(time)
