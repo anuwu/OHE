@@ -126,6 +126,18 @@ int total_rank(vector<int> &subset, int n) {
 }
 
 bool get_bool_from_block(const block *blk) {
-    uint64_t *data = (uint64_t*)blk ;
+    uint64_t *data = (uint64_t*) blk ;
     return data[1] & 1 ;
+}
+
+bool get_bools_from_block(const block *blk) {
+    bool *b = new bool[128] ;
+    uint64_t *data = (uint64_t*) blk ;
+
+    for (int i = 0 ; i < 64 ; i++) {
+        b[63-i] = (data[0] >> i) & 1 ;
+        b[127-i] = (data[1] >> i) & 1 ;
+    }
+
+    return b ;
 }

@@ -169,15 +169,15 @@ public :
         block *hot = new block[this->length] ; 
         prg.random_block(hot+1, n) ;
 
-        block *a, *b_blk, *b_stretched, *andd, *loc, *loc_tmp, *fin, *fin_tmp ;
+        block *a, *b_blk, *andd, *loc, *loc_tmp, *fin, *fin_tmp ;
         unordered_map<int, block*> r, rcv, a_masked ;
         bool *b ;
 
-        b_stretched = new block[1] ; 
+        // b_stretched = new block[1] ; 
         andd = new block[1]; 
         loc = new block[1] ; loc_tmp = new block[1] ;
         fin = new block[1] ; fin_tmp = new block[1] ;
-        b = new bool[1] ;
+        b = new bool[128] ;
 
         for (auto it = this->robin.begin() ; it != this->robin.end() ; it++) {
             int p1 = it->first, p2 = it->second ;
@@ -191,8 +191,9 @@ public :
             a = hot + singleton[i] ;
 
             b_blk = hot + remaining[i] ;
-            *b = get_bool_from_block(b_blk) ;
-            stretch_bool(b_stretched, *b, 1) ;
+            *b = get_bools_from_block(b_blk) ;
+            // stretch_bool(b_stretched, *b, 1) ;
+            // copyBools_arr(b_stretched, b_blk, 1) ;
 
             ThreadPool pool(this->parties - 1) ;
 
@@ -206,17 +207,17 @@ public :
                 if (p1 == party) {
                     // cout << i << "--> SR : " << this->party << "-" << p << "\n" ; 
                     this->ots[wh]->send(r[wh], a_masked[wh], 1) ; this->ots[wh]->io->flush() ;
-                    this->ots[wh]->recv(rcv[wh], b, 1) ;
+                    this->ots[wh]->recv(rcv[wh], b, 128) ;
                 } else {
                     // cout << i << "--> RS : " << p << "-" << this->party << "\n" ;
-                    this->ots[wh]->recv(rcv[wh], b, 1) ; this->ots[wh]->io->flush() ;
+                    this->ots[wh]->recv(rcv[wh], b, 128) ; this->ots[wh]->io->flush() ;
                     this->ots[wh]->send(r[wh], a_masked[wh], 1) ; 
                 }
                 this->ots[wh]->io->flush() ;
             }
 
             // Computing final share
-            andBlocks_arr(andd, a, b_stretched, 1) ;
+            andBlocks_arr(andd, a, b_blk, 1) ;
             copyBlocks_arr(loc_tmp, andd, 1) ;
             for (int p = 1 ; p <= this->parties ; p++) {
                 if (p == this->party)
@@ -269,15 +270,15 @@ public :
         block *hot = new block[this->length] ; 
         prg.random_block(hot+1, n) ;
 
-        block *a, *b_blk, *b_stretched, *andd, *loc, *loc_tmp, *fin, *fin_tmp ;
+        block *a, *b_blk, *andd, *loc, *loc_tmp, *fin, *fin_tmp ;
         unordered_map<int, block*> r, rcv, a_masked ;
         bool *b ;
 
-        b_stretched = new block[1] ; 
+        // b_stretched = new block[1] ; 
         andd = new block[1]; 
         loc = new block[1] ; loc_tmp = new block[1] ;
         fin = new block[1] ; fin_tmp = new block[1] ;
-        b = new bool[1] ;
+        b = new bool[128] ;
 
         for (int p = 1 ; p <= this->parties ; p++) {
             if (p == this->party)
@@ -292,8 +293,9 @@ public :
             a = hot + singleton[i] ;
 
             b_blk = hot + remaining[i] ;
-            *b = get_bool_from_block(b_blk) ;
-            stretch_bool(b_stretched, *b, 1) ;
+            *b = get_bools_from_block(b_blk) ;
+            // stretch_bool(b_stretched, *b, 1) ;
+            // copyBools_arr(b_stretched, b_blk, 1) ;
 
             ThreadPool pool(this->parties - 1) ;
 
@@ -310,10 +312,10 @@ public :
                     if (this->party < p) {
                         // cout << i << "--> SR : " << this->party << "-" << p << "\n" ; 
                         this->ots[p]->send(r[p], a_masked[p], 1) ; this->ots[p]->io->flush() ;
-                        this->ots[p]->recv(rcv[p], b, 1) ;
+                        this->ots[p]->recv(rcv[p], b, 128) ;
                     } else {
                         // cout << i << "--> RS : " << p << "-" << this->party << "\n" ;
-                        this->ots[p]->recv(rcv[p], b, 1) ; this->ots[p]->io->flush() ;
+                        this->ots[p]->recv(rcv[p], b, 128) ; this->ots[p]->io->flush() ;
                         this->ots[p]->send(r[p], a_masked[p], 1) ;    
                     }
                     this->ots[p]->io->flush() ;
@@ -321,7 +323,7 @@ public :
             }
 
             // Computing final share
-            andBlocks_arr(andd, a, b_stretched, 1) ;
+            andBlocks_arr(andd, a, b_blk, 1) ;
             copyBlocks_arr(loc_tmp, andd, 1) ;
             for (int p = 1 ; p <= this->parties ; p++) {
                 if (p == this->party)
@@ -438,8 +440,12 @@ int main(int argc, char** argv) {
     vector<pair<int,int>> robin ;
     robin = get_round_robin_scheme(party, parties) ;
 
-    unordered_map<int, NetIO*> ios = get_pairwise_channels(party, parties, start_port, robin) ;
-    // unordered_map<int, NetIO*> ios = get_pairwise_channels_threaded(party, parties, start_port) ;
+    unordered_map<int, NetIO*> ios ;
+
+    if (parties > 6 && ot_type == "ferret")
+        ios = get_pairwise_channels(party, parties, start_port, robin) ;
+    else 
+        ios = get_pairwise_channels_threaded(party, parties, start_port) ;
 
     auto start = clock_start(); int64_t comms ;
     if (ot_type == "otnp") {
@@ -479,8 +485,12 @@ int main(int argc, char** argv) {
             
         Coordinator<FerretCOT<NetIO>> cood(party, parties, length, loglength, robin, ots) ;
         cout << "Created Ferret coordinator\n" ;
-        if (tool == 0)
-            comms = cood.test_gmt() ;   
+        if (tool == 0) {
+            if (parties > 6 && ot_type == "ferret")
+                comms = cood.test_gmt() ;   
+            else
+                comms = cood.test_gmt_threaded() ;
+        }
             // comms = cood.test_gmt_threaded() ; // cout << "Total comms : " << comms << "\n" ;
     } else {
         exit(1) ;
