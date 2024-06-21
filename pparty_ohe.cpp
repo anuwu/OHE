@@ -306,17 +306,15 @@ public :
 
                 // cout << "Targetting party " << p << "\n" ;
                 pool.enqueue([i, p, this, &r, &a_masked, b, &rcv] {
+                    this->ots[p]->io->sync() ;
                     if (this->party < p) {
-                        this->ots[p]->io->sync() ;
                         // cout << i << "--> SR : " << this->party << "-" << p << "\n" ; 
                         this->ots[p]->send(r[p], a_masked[p], 1) ; this->ots[p]->io->flush() ;
                         this->ots[p]->recv(rcv[p], b, 1) ;
-                        this->ots[p]->io->sync() ;
                     } else {
                         // cout << i << "--> RS : " << p << "-" << this->party << "\n" ;
                         this->ots[p]->recv(rcv[p], b, 1) ; this->ots[p]->io->flush() ;
-                        this->ots[p]->send(r[p], a_masked[p], 1) ; 
-                        this->ots[p]->io->sync() ;
+                        this->ots[p]->send(r[p], a_masked[p], 1) ;    
                     }
                     this->ots[p]->io->flush() ;
                 }) ;
