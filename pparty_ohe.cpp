@@ -307,7 +307,7 @@ public :
                 xorBlocks_arr(a_masked[p], a, r[p], 1) ;
 
                 // cout << "Targetting party " << p << "\n" ;
-                pool.enqueue([i, p, this, &r, &a_masked, b, &rcv] {
+                pool.enqueue([p, this, &r, &a_masked, b, &rcv] {
                     this->ots[p]->io->sync() ;
                     if (this->party < p) {
                         // cout << i << "--> SR : " << this->party << "-" << p << "\n" ; 

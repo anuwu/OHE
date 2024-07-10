@@ -9,19 +9,22 @@ include_directories(${EMP-TOOL_INCLUDE_DIR})
 
 find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
+include_directories(${EMP-TOOL_INCLUDE_DIR})
 
 # message("This is ${EMP-TOOL_LIBRARIES}")
 # message("This is ${EMP-OT_INCLUDE_DIR}")
 
-include_directories(${EMP-TOOL_INCLUDE_DIR})
 add_executable(test "test.cpp")
 target_link_libraries(test ${EMP-TOOL_LIBRARIES})
 
-include_directories(${EMP-TOOL_INCLUDE_DIR})
 add_executable(multi "multi.cpp")
 target_link_libraries(multi ${EMP-TOOL_LIBRARIES})
 
-include_directories(${EMP-TOOL_INCLUDE_DIR})
 add_executable(ppohe "pparty_ohe.cpp")
 target_link_libraries(ppohe ${EMP-TOOL_LIBRARIES})
-# target_include_directories(test PUBLIC ${EMP-OT_INCLUDE_DIR})
+
+add_executable(david "david_ot.cpp")
+target_link_libraries(david ${EMP-TOOL_LIBRARIES})
+
+add_executable(rot "rot.cpp")
+target_link_libraries(rot ${EMP-TOOL_LIBRARIES})
