@@ -37,19 +37,20 @@ block* reconst_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *oh
 }
 
 block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2) {
+  /************************* Declare and Init *************************/
+
   int num_blocks = n_to_blocks(n) ;
   PRG prg ;
-  block *ohe = new block[num_blocks] ;
-  for (int i = 0 ; i < num_blocks ; i++)  // Initializing OHE
-    ohe[i] = zero_block ;
-
-  bool *b = new bool[n] ;
-  prg.random_bool(b, n) ;
   block *r0 = new block[n-1] ;
   block *r1 = new block[n-1] ;
   block *rcv_ot = new block[n-1] ;
+  bool *b = new bool[n] ; prg.random_bool(b, n) ;
+  block *ohe = new block[num_blocks] ;
+  for (int i = 0 ; i < num_blocks ; i++) 
+    ohe[i] = zero_block ;
   
-  // Setting initial one-hot vector
+  /************************* First Bit *************************/
+
   if (party == ALICE) {
     ohe[0] = set_bit(ohe[0], b[0] ? 1 : 0) ;    
   } else {
@@ -58,6 +59,8 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2) {
       ohe[0] = set_bit(ohe[0], 0) ;
     }
   }
+
+  /************************* Perform Random OTs *************************/
 
   if (party == ALICE) {
     ot1->send_rot(r0, r1, n-1) ;
@@ -70,106 +73,75 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2) {
   ot2->io->flush() ;
 
   for (int r = 2 ; r <= n ; r++) {
+    // Declare and initialize
     int comm_bytes = n_to_bytes(r-1) ;
-    if (r < 8) {
-      block *msg = new block[1] ;
-      block *rcv_msg = new block[1] ;
-      block *cross_share = new block[1] ;
+    int small_blocks = n_to_blocks(r-1) ;
+    block *msg = new block[small_blocks] ;
+    block *rcv_msg = new block[small_blocks] ;
+    block *cross_share = new block[small_blocks] ;
+    block *r0_actual = new block[small_blocks] ;
+    block *r1_actual = new block[small_blocks] ;
+    block *rcv_ot_actual = new block[small_blocks] ;
 
+    // Setup r0, r1 and received OTs
+    if (r < 8) {
       block mask = zero_block ;
       for (int pos = 0 ; pos < 1 << (r-1) ; pos++)
         mask = set_bit(mask, pos) ;
 
-      // Masking blocks for ease of debugging
-      andBlocks_arr(r0+r-2, &mask, 1) ; andBlocks_arr(r1+r-2, &mask, 1) ; andBlocks_arr(rcv_ot+r-2, &mask, 1) ;
-      xorBlocks_arr(msg, r0+r-2, r1+r-2, 1) ; 
-      xorBlocks_arr(msg, ohe, 1) ;
-
-      if (party == ALICE) {
-        ot1->io->send_data(msg, comm_bytes) ; 
-        ot2->io->recv_data(rcv_msg, comm_bytes) ; 
-      } else {
-        ot1->io->recv_data(rcv_msg, comm_bytes) ;
-        ot2->io->send_data(msg, comm_bytes) ; 
-      }
-      ot1->io->flush() ;
-      ot2->io->flush() ;
-
-      copyBlocks_arr(cross_share, rcv_ot+r-2, 1) ;
-      if (b[r-1])
-        xorBlocks_arr(cross_share, rcv_msg, 1) ;
-
-      if (b[r-1])
-        xorBlocks_arr(cross_share, ohe, 1) ;
-      xorBlocks_arr(cross_share, r0+r-2, 1) ;
-
-      // First half
-      xorBlocks_arr(ohe, cross_share, 1) ;
-
-      // Second half
-      if (r < 7)
-        cross_share[0] = cross_share[0] << (1 << (r-1)) ;
-      else {
-        uint64_t* data = (uint64_t*)cross_share ;
-        data[1] = data[0] ;
-        data[0] = 0L ;
-      }
-      for (int pos = 0 ; pos < 1 << (r-1) ; pos++)
-        cross_share[0] = set_bit(cross_share[0], pos) ;
-      for (int pos = 1 << (r-1) ; pos < 1 << r ; pos++)
-        ohe[0] = set_bit(ohe[0], pos) ;
-      andBlocks_arr(ohe, cross_share, 1) ;
-      
-      delete[] msg ; delete[] rcv_msg ; delete[] cross_share ;
+      andBlocks_arr(r0_actual, r0+r-2, &mask, 1) ; 
+      andBlocks_arr(r1_actual, r1+r-2, &mask, 1) ; 
+      andBlocks_arr(rcv_ot_actual, rcv_ot+r-2, &mask, 1) ;
+    } else if (r == 8) {
+      r0_actual[0] = r0[r-2] ;
+      r1_actual[0] = r1[r-2] ;
+      rcv_ot_actual[0] = rcv_ot[r-2] ;
     } else {
-      int small_blocks = n_to_blocks(r-1) ;
-      // cout << "Small blocks - " << small_blocks << "\n" ;
-      block *msg = new block[small_blocks] ;
-      block *rcv_msg = new block[small_blocks] ;
-      block *cross_share = new block[small_blocks] ;
-
-      block *r0_expanded = new block[small_blocks] ;
-      block *r1_expanded = new block[small_blocks] ;
-      block *rcv_ot_expanded = new block[small_blocks] ;
-
-      if (r == 8) {
-        r0_expanded[0] = r0[r-2] ;
-        r1_expanded[0] = r1[r-2] ;
-        rcv_ot_expanded[0] = rcv_ot[r-2] ;
-      } else {
-        PRG prg0(r0+r-2) ; PRG prg1(r1+r-2) ; PRG prg_rcv(rcv_ot+r-2) ;
-        prg0.random_block(r0_expanded, small_blocks) ;
-        prg1.random_block(r1_expanded, small_blocks) ;
-        prg_rcv.random_block(rcv_ot_expanded, small_blocks) ;
-      }
-
-      xorBlocks_arr(msg, r0_expanded, r1_expanded, small_blocks) ; 
-      xorBlocks_arr(msg, ohe, small_blocks) ;
-
-      if (party == ALICE) {
-        ot1->io->send_data(msg, comm_bytes) ; 
-        ot2->io->recv_data(rcv_msg, comm_bytes) ; 
-      } else {
-        ot1->io->recv_data(rcv_msg, comm_bytes) ;
-        ot2->io->send_data(msg, comm_bytes) ; 
-      }
-      ot1->io->flush() ;
-      ot2->io->flush() ;
-
-      copyBlocks_arr(cross_share, rcv_ot_expanded, small_blocks) ;
-      if (b[r-1])
-        xorBlocks_arr(cross_share, rcv_msg, small_blocks) ;
-
-      if (b[r-1])
-        xorBlocks_arr(cross_share, ohe, small_blocks) ;
-      xorBlocks_arr(cross_share, r0_expanded, small_blocks) ;
-
-      xorBlocks_arr(ohe, cross_share, small_blocks) ;                 // First half
-      copyBlocks_arr(ohe+small_blocks, cross_share, small_blocks) ;   // Second half
-
-      delete[] r0_expanded ; delete[] r1_expanded ; delete[] rcv_ot_expanded ;
-      delete[] msg ; delete[] rcv_msg ; delete[] cross_share ;
+      PRG prg0(r0+r-2) ; PRG prg1(r1+r-2) ; PRG prg_rcv(rcv_ot+r-2) ;
+      prg0.random_block(r0_actual, small_blocks) ;
+      prg1.random_block(r1_actual, small_blocks) ;
+      prg_rcv.random_block(rcv_ot_actual, small_blocks) ;
     }
+
+    // Random OT correction
+    xorBlocks_arr(msg, r0_actual, r1_actual, small_blocks) ; 
+    xorBlocks_arr(msg, ohe, small_blocks) ;
+    if (party == ALICE) {
+      ot1->io->send_data(msg, comm_bytes) ; 
+      ot2->io->recv_data(rcv_msg, comm_bytes) ; 
+    } else {
+      ot1->io->recv_data(rcv_msg, comm_bytes) ;
+      ot2->io->send_data(msg, comm_bytes) ; 
+    }
+    ot1->io->flush() ;
+    ot2->io->flush() ;
+
+    // Cross share
+    copyBlocks_arr(cross_share, rcv_ot_actual, small_blocks) ;
+    if (b[r-1])
+      xorBlocks_arr(cross_share, rcv_msg, small_blocks) ;
+    if (b[r-1])
+      xorBlocks_arr(cross_share, ohe, small_blocks) ;
+    xorBlocks_arr(cross_share, r0_actual, small_blocks) ;
+
+    // Manipulate cross share
+    if (r < 7) {
+      block tmp = cross_share[0] ;
+      cross_share[0] = cross_share[0] << (1 << (r-1)) ;
+      xorBlocks_arr(cross_share, &tmp, 1) ;
+    }
+    else if (r==7) {
+      uint64_t* data = (uint64_t*)cross_share ;
+      data[1] = data[0] ;
+    } else {
+      copyBlocks_arr(ohe + small_blocks, cross_share, small_blocks) ;
+    }
+    
+    // OHE for next iteration
+    xorBlocks_arr(ohe, cross_share, small_blocks) ;
+
+    delete[] msg ; delete[] rcv_msg ; delete[] cross_share ;
+    delete[] r0_actual ; delete[] r1_actual ; delete[] rcv_ot_actual ;
   }
 
   delete[] b ;
@@ -184,6 +156,7 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2) {
 
 int main(int argc, char** argv) {
   /************************* Parse Input *************************/
+  
   const auto abort = [&] {
     cerr
       << "usage: "
@@ -231,26 +204,24 @@ int main(int argc, char** argv) {
   if (verify) {
     int counter = 0 ;
     do {
-    ohe = random_ohe(party, n, ot1, ot2) ;
-    rec = reconst_ohe(party, n, ot1, ot2, ohe, false) ;
-
-    int no_set = 0 ;
-    for (int i = 0 ; i < num_blocks ; i++) {
-      uint64_t *dat = (uint64_t*)(rec+i) ;
-      for (int pos = 0 ; pos < 64 ; pos++) {
-        if (dat[0] & (1L << pos))
-          no_set++ ;
-        if (dat[1] & (1L << pos))
-          no_set++ ;
+      ohe = random_ohe(party, n, ot1, ot2) ;
+      rec = reconst_ohe(party, n, ot1, ot2, ohe, false) ;
+      int no_set = 0 ;
+      for (int i = 0 ; i < num_blocks ; i++) {
+        uint64_t *dat = (uint64_t*)(rec+i) ;
+        for (int pos = 0 ; pos < 64 ; pos++) {
+          if (dat[0] & (1L << pos))
+            no_set++ ;
+          if (dat[1] & (1L << pos))
+            no_set++ ;
+        }
       }
-    }
-
-    if (no_set != 1)
-      break ;
-      
-    delete[] ohe ; delete[] rec ;
-    counter++ ;
-  } while (counter < no_tests) ;
+      if (no_set != 1)
+        break ;
+        
+      delete[] ohe ; delete[] rec ;
+      counter++ ;
+    } while (counter < no_tests) ;
 
     if (counter == no_tests)
       cout << "\033[1;32m" << "Passed" << "\033[0m\n" ;
@@ -261,11 +232,9 @@ int main(int argc, char** argv) {
   } else {
     ohe = random_ohe(party, n, ot1, ot2) ;
     rec = reconst_ohe(party, n, ot1, ot2, ohe, false) ;
-
     cout << "Reconstructed OHE - \n" ;
     for (int i = 0 ; i < num_blocks ; i++)
       cout << rec[i] << "\n" ;
-
     delete[] ohe ; delete[] rec ;
   }
 
