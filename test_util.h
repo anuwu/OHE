@@ -24,14 +24,30 @@ uint64_t comb(uint64_t n, uint64_t k)
 inline void andBlocks_arr(block* res, const block* x, const block* y, int nblocks) {
 	const block *dest = nblocks + x ;
 	for (; x != dest;) {
-		*(res++) = *(x++) ^ *(y++);
+		*(res++) = *(x++) & *(y++);
+	}
+}
+
+inline void andBlocks_arr(block* res, const block* y, int nblocks) {
+	const block *dest = nblocks + res ;
+	for (; res != dest;) {
+        *res = *res & *y ;
+        res++ ; y++ ;
 	}
 }
 
 inline void andBlocks_arr(block* res, const block* x, block y, int nblocks) {
 	const block *dest = nblocks + x ;
 	for (; x != dest;) 
-		*(res++) =  *(x++) ^ y;
+		*(res++) =  *(x++) & y;
+}
+
+inline void xorBlocks_arr(block* res, block* y, int nblocks) {
+	const block *dest = nblocks + res ;
+	for (; res != dest;) {
+        *res = *res ^ *y ;
+        res++ ; y++ ;
+	}
 }
 
 inline void copyBlocks_arr(block* to, const block* from, int nblocks) {

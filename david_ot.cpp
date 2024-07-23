@@ -23,11 +23,9 @@ void experiment(const std::vector<std::size_t>& ot_sizes, int32_t div) {
   emp::block* send_lefts = new emp::block[num_ots];
   emp::block* send_rights = new emp::block[num_ots];
   bool* choices = new bool[num_ots];
-
   char* messages = new char[num_bytes];
 
   std::cout << num_ots << '\t' << num_bytes << '\n';
-
 
   if (party == ALICE) {
     std::cout << "Sending rot\n" ;
@@ -35,15 +33,24 @@ void experiment(const std::vector<std::size_t>& ot_sizes, int32_t div) {
     channel->send_data(messages, num_bytes);
     ot_channel->recv_rot(recvs, choices, num_ots);
     channel->recv_data(messages, num_bytes);
+
+    std::cout << "All the choices are -\n" ;
+    for (int i = 0 ; i < num_ots ; i++)
+      std::cout << choices[i] << ", " ;
+    std::cout << "\n" ;
   } else {
     std::cout << "Receiving rot\n" ;
     ot_channel->recv_rot(recvs, choices, num_ots);
     channel->recv_data(messages, num_bytes);
     ot_channel->send_rot(send_lefts, send_rights, num_ots);
     channel->send_data(messages, num_bytes);
+
+    std::cout << "All the choices are -\n" ;
+    for (int i = 0 ; i < num_ots ; i++)
+      std::cout << choices[i] << ", " ;
+    std::cout << "\n" ;
   }
   channel->flush();
-
 
   const auto t = time_from(start_time);    
   std::cout << std::fixed << std::setprecision(2);

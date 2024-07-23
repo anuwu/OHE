@@ -26,5 +26,8 @@ target_link_libraries(ppohe ${EMP-TOOL_LIBRARIES})
 add_executable(david "david_ot.cpp")
 target_link_libraries(david ${EMP-TOOL_LIBRARIES})
 
-add_executable(rot "rot.cpp")
-target_link_libraries(rot ${EMP-TOOL_LIBRARIES})
+add_executable(vrot "vector_rot.cpp")
+target_link_libraries(vrot ${EMP-TOOL_LIBRARIES})
+
+add_executable(tsb "test_send_block.cpp")
+target_link_libraries(tsb ${EMP-TOOL_LIBRARIES})
