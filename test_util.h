@@ -157,3 +157,11 @@ bool get_bools_from_block(const block *blk) {
 
     return b ;
 }
+
+int n_to_blocks(int n) {
+  return n < 8 ? 1 : 1 << (n-7) ;
+}
+
+int n_to_bytes(int n) {
+  return n < 4 ? 1 : 1 << (n-3) ;
+}
