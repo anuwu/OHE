@@ -8,13 +8,6 @@ using namespace emp ;
 
 constexpr int threads = 1 ;
 
-bool check_equal(block *b1, block *b2) {
-  uint64_t *d1 = (uint64_t*)b1 ;
-  uint64_t *d2 = (uint64_t*)b2 ;
-
-  return d1[0] == d2[0] && d1[1] == d2[1] ;
-}
-
 int main(int argc, char** argv) {
   const auto abort = [&] {
     cerr

@@ -31,3 +31,6 @@ target_link_libraries(vrot ${EMP-TOOL_LIBRARIES})
 
 add_executable(tsb "test_send_block.cpp")
 target_link_libraries(tsb ${EMP-TOOL_LIBRARIES})
+
+add_executable(ut "util_test.cpp")
+target_link_libraries(ut ${EMP-TOOL_LIBRARIES})
