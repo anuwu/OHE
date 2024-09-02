@@ -225,7 +225,6 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
     return ohe ;
   }
 
-
   /************************* Declare and Init *************************/
 
   // Declare
@@ -344,6 +343,7 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
     if (single_bools[singleton_gmt[i]])
       xorBlocks_arr(hot+i, hot+remaining_gmt[i], 1) ;
 
+    // Correcting choice bit
     *msg_bit = xorr(single_bools[singleton_gmt[i]], b[i-n-1]) ;
     if (party == ALICE) {
       ot1->io->send_data(msg_bit, 1) ;
@@ -364,7 +364,6 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
 
   /************************* Convert GMT to OHE *************************/
   
-
   ohe_bool[ohe_size-1] = test_bit(hot[ohe_size-1], 0) ;
   for (int i = 0 ; i < conv_left.size() ; i++) {
     bool the_bool = ohe_bool[conv_right1[i]] ;
@@ -715,10 +714,8 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   }
 
   // Iterate over all product terms
-  for (int i=n+1 ; i < ohe_size ; i++) {
-
-  }
-
+  int largest_flat_bits = comb(n, n/2)*batch_size ;
+  int largest_flat_blocks = largest_flat_bits/128 ;
 
   /************************* Delete and Return *************************/
 
