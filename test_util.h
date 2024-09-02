@@ -113,8 +113,13 @@ inline void stretch_bool(block* bs, bool b, int len) {
 
 /**** Misc ****/
 inline void initialize_blocks(block *blk, int num_blocks, const block init = zero_block) {
-    for (int i = 0 ; i < num_blocks ; i++)
-        blk[i] = init ;
+  for (int i = 0 ; i < num_blocks ; i++)
+    blk[i] = init ;
+}
+
+inline void initialize_bools(bool *bs, int num_bools, const bool init = false) {
+  for (int i = 0 ; i < num_bools ; i++)
+    bs[i] = init ;
 }
 
 bool get_bool_from_block(const block *blk) {
