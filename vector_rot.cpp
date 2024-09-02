@@ -338,7 +338,7 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
       xorBlocks_arr(msg, r0+index-n-1, r1+index-n-1, 1) ; 
       xorBlocks_arr(msg, hot+remaining_gmt[index], 1) ;
       copyBits(msgs+i/128, i%128, msg, 0, 1) ;
-      msg_bits[i] = xorr(single_bools[singleton_gmt[index]], b[index-n-1]) ;
+      msg_bits[i] = single_bools[singleton_gmt[index]] ^ b[index-n-1] ;
     }
 
     // Send and Recv correction messages
@@ -394,7 +394,7 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
   for (int i = 0 ; i < conv_left.size() ; i++) {
     bool the_bool = ohe_bool[conv_right1[i]] ;
     for (int j = 0 ; j < conv_right2[i].size() ; j++)
-      the_bool = xorr(the_bool, test_bit(hot[conv_right2[i][j]], 0)) ;
+      the_bool = the_bool ^ test_bit(hot[conv_right2[i][j]], 0) ;
     ohe_bool[conv_left[i]] = the_bool ;
   }
   for (int i = 0 ; i < ohe_size ; i++)
@@ -629,7 +629,6 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
 
   // Handle Base Case
   if (n == 1) {
-
     for (int b = 0 ; b < batch_size ; b++) {
       if (party == ALICE) {
         ohes[b][0] = set_bit(ohes[b][0], single_bools[b][0] ? 1 : 0) ;    
@@ -763,7 +762,7 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
         xorBlocks_arr(msg, r0s+b*num_ots+index-n-1, r1s+b*num_ots+index-n-1, 1) ; 
         xorBlocks_arr(msg, hots[b]+remaining_gmt[index], 1) ;
         copyBits(msgs+(b*small_flat_bits+i)/128, (b*small_flat_bits+i)%128, msg, 0, 1) ;
-        msg_bits[b*small_flat_bits+i] = xorr(single_bools[b][singleton_gmt[index]], bs[b*num_ots+index-n-1]) ;
+        msg_bits[b*small_flat_bits+i] = single_bools[b][singleton_gmt[index]] ^ bs[b*num_ots+index-n-1] ;
       } 
       index = index_restore ;
     }
@@ -825,7 +824,7 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
     for (int i = 0 ; i < conv_left.size() ; i++) {
       bool the_bool = ohe_bool[conv_right1[i]] ;
       for (int j = 0 ; j < conv_right2[i].size() ; j++)
-        the_bool = xorr(the_bool, test_bit(hots[b][conv_right2[i][j]], 0)) ;
+        the_bool = the_bool ^ test_bit(hots[b][conv_right2[i][j]], 0) ;
       ohe_bool[conv_left[i]] = the_bool ;
     }
 
