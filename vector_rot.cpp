@@ -83,7 +83,7 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
 
   /************************* Declare *************************/
 
-  uint64_t rot_comms1 = ot1->io->counter, rot_comms2 = ot2->io->counter ;
+  uint64_t rot_comms = ot1->io->counter ;
   block *r0 = new block[n-1] ;
   block *r1 = new block[n-1] ;
   block *rcv_ot = new block[n-1] ;
@@ -102,9 +102,9 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
   ot2->io->flush() ;
 
   // Print stuff
-  rot_comms1 = ot1->io->counter - rot_comms1 ; rot_comms2 = ot2->io->counter - rot_comms2 ;
-  if (print_comm) cout << "ROT comms : " << (rot_comms1 + rot_comms2) << " bytes\n" ;
-  int64_t corr_comms1 = ot1->io->counter, corr_comms2 = ot2->io->counter ;
+  rot_comms = ot1->io->counter - rot_comms ;
+  if (print_comm) cout << "ROT comms : " << rot_comms << " bytes\n" ;
+  int64_t corr_comms = ot1->io->counter ;
 
   /************************* Correct Random OTs *************************/
 
@@ -187,8 +187,8 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
   delete[] r0_actual ; delete[] r1_actual ; delete[] rcv_ot_actual ;
 
   // Print stuff
-  corr_comms1 = ot1->io->counter - corr_comms1 ; corr_comms2 = ot2->io->counter ;
-  if (print_comm) cout << "Corr comms : " << (corr_comms1 + corr_comms2) << " bytes\n" ;
+  corr_comms = ot1->io->counter - corr_comms ;
+  if (print_comm) cout << "Corr comms : " << corr_comms << " bytes\n" ;
 
   /************************* Delete and Return *************************/
 
@@ -231,7 +231,7 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
   /************************* Declare and Init *************************/
 
   // Declare
-  int64_t rot_comms1 = ot1->io->counter, rot_comms2 = ot2->io->counter ;
+  int64_t rot_comms = ot1->io->counter ;
   int ohe_size = 1 << n ; int num_ots = ohe_size - n - 1 ;
   bool *ohe_bool = new bool[ohe_size] ;
   block *hot = new block[ohe_size] ; 
@@ -296,9 +296,9 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
   ot1->io->flush() ;
   ot2->io->flush() ;
 
-  rot_comms1 = ot1->io->counter - rot_comms1 ; rot_comms2 = ot2->io->counter - rot_comms2 ;
-  if (print_comm) cout << "ROT comms : " << (rot_comms1 + rot_comms2) << " bytes\n" ;
-  int64_t corr_comms1 = ot1->io->counter, corr_comms2 = ot2->io->counter ;
+  rot_comms = ot1->io->counter - rot_comms ; 
+  if (print_comm) cout << "ROT comms : " << rot_comms << " bytes\n" ;
+  int64_t corr_comms = ot1->io->counter ;
 
   /************************* Correct Random OTs *************************/
 
@@ -385,8 +385,8 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
   delete[] msg_bits ; delete[] rcv_bits ; 
 
   // Print stuff
-  corr_comms1 = ot1->io->counter - corr_comms1 ; corr_comms2 = ot2->io->counter - corr_comms2 ;
-  if (print_comm) cout << "Corr comms : " << (corr_comms1 + corr_comms2) << " bytes\n" ;
+  corr_comms = ot1->io->counter - corr_comms ;
+  if (print_comm) cout << "Corr comms : " << corr_comms << " bytes\n" ;
 
   /************************* Convert GMT to OHE *************************/
   
@@ -445,7 +445,7 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
 
   /************************* Declare and Init *************************/
 
-  uint64_t rot_comms1 = ot1->io->counter ;  uint64_t rot_comms2 = ot2->io->counter ;
+  uint64_t rot_comms = ot1->io->counter ;
   block *r0s = new block[batch_size*(n-1)] ;
   block *r1s = new block[batch_size*(n-1)] ;
   block *rcv_ots = new block[batch_size*(n-1)] ;
@@ -466,9 +466,9 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   ot2->io->flush() ;
 
   // Print stuff
-  rot_comms1 = ot1->io->counter - rot_comms1 ; rot_comms2 = ot2->io->counter ;
-  if (print_comm) cout << "ROT comms : " << (rot_comms1 + rot_comms2) << " bytes\n" ;
-  int64_t corr_comms1 = ot1->io->counter, corr_comms2 = ot2->io->counter ;
+  rot_comms = ot1->io->counter - rot_comms ;
+  if (print_comm) cout << "ROT comms : " << rot_comms << " bytes\n" ;
+  int64_t corr_comms = ot1->io->counter ;
 
   /************************* Correct Random OTs *************************/
 
@@ -599,8 +599,8 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   delete[] msgs ; delete[] rcv_msgs ;
 
   // Print stuff
-  corr_comms1 = ot1->io->counter - corr_comms1 ; corr_comms2 = ot2->io->counter ;
-  if (print_comm) cout << "Corr comms : " << (corr_comms1 + corr_comms2) << " bytes\n" ;
+  corr_comms = ot1->io->counter - corr_comms ;
+  if (print_comm) cout << "Corr comms : " << corr_comms << " bytes\n" ;
   
   /************************* Delete and Return *************************/
 
@@ -649,7 +649,7 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   /************************* Declare and Init *************************/
 
   // Declare
-  uint64_t rot_comms1 = ot1->io->counter ; uint64_t rot_comms2 = ot2->io->counter ;
+  uint64_t rot_comms = ot1->io->counter ;
   int ohe_size = 1 << n ; 
   int num_ots = ohe_size - n - 1 ;
   bool *ohe_bool = new bool[ohe_size] ;    // This is a temporary storage variable and does not need to replicated per batch
@@ -717,9 +717,9 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   ot1->io->flush() ;
   ot2->io->flush() ;
 
-  rot_comms1 = ot1->io->counter - rot_comms1 ; rot_comms2 = ot2->io->counter - rot_comms2 ;
-  if (print_comm) cout << "ROT comms : " << (rot_comms1 + rot_comms2) << " bytes\n" ;
-  int64_t corr_comms1 = ot1->io->counter, corr_comms2 = ot2->io->counter ;
+  rot_comms = ot1->io->counter - rot_comms ;
+  if (print_comm) cout << "ROT comms : " << rot_comms << " bytes\n" ;
+  int64_t corr_comms = ot1->io->counter ;
 
   /************************* Correct Random OTs *************************/
 
@@ -814,8 +814,8 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   delete[] msg_bits ; delete[] rcv_bits ; 
 
   // Print stuff
-  corr_comms1 = ot1->io->counter - corr_comms1 ; corr_comms2 = ot2->io->counter - corr_comms2 ;
-  if (print_comm) cout << "Corr comms : " << (corr_comms1 + corr_comms2) << " bytes\n" ;
+  corr_comms = ot1->io->counter - corr_comms ;
+  if (print_comm) cout << "Corr comms : " << corr_comms << " bytes\n" ;
 
   /************************* Convert GMT to OHE *************************/
 
@@ -897,6 +897,8 @@ int main(int argc, char** argv) {
   /************************* Experiment *************************/
 
   if (batched) {
+    int batch_size = 128 ;
+    auto start_exp = clock_start(); 
     // Declare and initialize
     int num_blocks = n_to_blocks(n) ;
     block **ohes ;
@@ -904,40 +906,50 @@ int main(int argc, char** argv) {
     
     // Get OHEs
     if (prot_type == "ohe")
-      ohes = batched_random_ohe(party, n, 128, ot1, ot2, true) ;
+      ohes = batched_random_ohe(party, n, batch_size, ot1, ot2, true) ;
     else
-      ohes = batched_random_gmt(party, n, 128, ot1, ot2, true) ;
+      ohes = batched_random_gmt(party, n, batch_size, ot1, ot2, true) ;
+    comm_var = io->counter - comm_var ;
 
     // Verify per batch
-    int correct = 0 ;    
-    for (int b = 0 ; b < 128 ; b++) {
-      rec = reconst_ohe(party, n, ot1, ot2, ohes[b], false) ;
-      int no_set = 0 ;
-      for (int i = 0 ; i < num_blocks ; i++) {
-        uint64_t *dat = (uint64_t*)(rec+i) ;
-        for (int pos = 0 ; pos < 64 ; pos++) {
-          if (dat[0] & (1L << pos))
-            no_set++ ;
-          if (dat[1] & (1L << pos))
-            no_set++ ;
+    if (verify) {
+      int correct = 0 ;    
+      for (int b = 0 ; b < batch_size ; b++) {
+        rec = reconst_ohe(party, n, ot1, ot2, ohes[b], false) ;
+        int no_set = 0 ;
+        for (int i = 0 ; i < num_blocks ; i++) {
+          uint64_t *dat = (uint64_t*)(rec+i) ;
+          for (int pos = 0 ; pos < 64 ; pos++) {
+            if (dat[0] & (1L << pos))
+              no_set++ ;
+            if (dat[1] & (1L << pos))
+              no_set++ ;
+          }
         }
-      }
-      if (no_set == 1)
-        correct++ ;
+        if (no_set == 1)
+          correct++ ;
 
-      delete[] rec ;
+        delete[] rec ;
+      }
+
+      // Print things
+      if (correct == batch_size)
+        cout << "\033[1;32m" << "Passed" << "\033[0m\n" ;
+      else 
+        cout << "\033[1;31m" << "Failed " << " --> " << correct << "\033[0m\n" ;
     }
 
-    // Print things
-    if (correct == 128)
-      cout << "\033[1;32m" << "Passed" << "\033[0m\n" ;
-    else 
-      cout << "\033[1;31m" << "Failed " << " --> " << correct << "\033[0m\n" ;
-
     // Delete
-    for (int b = 0 ; b < 128 ; b++)
+    for (int b = 0 ; b < batch_size ; b++)
       delete[] ohes[b] ;
     delete[] ohes ;
+
+    setprecision(5) ;
+    long long t_exp = time_from(start_exp);    
+
+    // Print things
+    cout << fixed << setprecision(5) << "Time taken : " << double(t_exp)/(1e3*batch_size) << " ms\n" ;
+    // cout << fixed << setprecision(2) << "OT comms : " << ot_comms/128 << " bytes\n" ;    
   }
   else {
     block *ohe ;
@@ -1012,13 +1024,13 @@ int main(int argc, char** argv) {
           ohe = random_gmt(party, n, ot1, ot2, true) ;
       }
       int64_t ot_comms ; 
-      ot_comms = ot1->io->counter - comm_var ; comm_var = ot1->io->counter ;
-      setprecision(2) ;
+      ot_comms = ot1->io->counter - comm_var ; 
+      setprecision(5) ;
       long long t_exp = time_from(start_exp);    
 
       // Print things
-      cout << fixed << setprecision(2) << "Time taken : " << double(t_exp)/(1e3*reps) << " ms\n" ;
-      cout << fixed << setprecision(2) << "OT comms : " << ot_comms/reps << " bytes\n" ;    
+      cout << fixed << setprecision(5) << "Time taken : " << double(t_exp)/(1e3*reps) << " ms\n" ;
+      cout << fixed << setprecision(5) << "OT comms : " << ot_comms/reps << " bytes\n" ;    
 
       // Delete
       delete[] ohe ; 

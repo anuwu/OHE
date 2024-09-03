@@ -29,6 +29,9 @@ target_link_libraries(david ${EMP-TOOL_LIBRARIES})
 add_executable(vrot "vector_rot.cpp")
 target_link_libraries(vrot ${EMP-TOOL_LIBRARIES})
 
+add_executable(throt "check_throt.cpp")
+target_link_libraries(throt ${EMP-TOOL_LIBRARIES})
+
 add_executable(tsb "test_send_block.cpp")
 target_link_libraries(tsb ${EMP-TOOL_LIBRARIES})
 
