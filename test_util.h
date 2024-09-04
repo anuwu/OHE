@@ -231,9 +231,6 @@ inline void copyBits(block *to, int pos1, block *from, int pos2, int bits) {
       mask1 = set_bit(mask1, ind1) ;
   andBlocks_arr(to, mask1, 1) ;
 
-  // cout << "Mask1 - \n" ;
-  // cout << *to << "\n" ;
-
   block mask2 = zero_block ;
   int ind2 = pos2 ;
   while (ind2 < pos2 + bits) {
@@ -241,15 +238,11 @@ inline void copyBits(block *to, int pos1, block *from, int pos2, int bits) {
     ind2++ ;
   }
   andBlocks_arr(&mask2, from, 1) ;
-  // cout << "Mask2 before shift - \n" ;
-  // cout << mask2 << "\n" ;
   if (pos1 > pos2)
     mask2 = left_shift(mask2, pos1 - pos2) ;
   else
     mask2 = right_shift(mask2, pos2 - pos1) ;
 
-  // cout << "Mask2 after shift - \n" ;
-  // cout << mask2 << "\n" ;
   xorBlocks_arr(to, &mask2, 1) ;
 }
 

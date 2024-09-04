@@ -144,31 +144,6 @@ int main(int argc, char** argv) {
   /************************* setBit test *************************/
 
   {
-    const auto abort = [&] {
-      cerr << "usage: " << argv[0] << " <pos>\n" ;
-      exit(EXIT_FAILURE);
-    } ;
-
-    if (argc != 2)
-      abort() ;
-
-    int pos = atoi(argv[1]) ;
-
-    PRG prg ;
-    block *blk = new block[1] ;
-    prg.random_block(blk, 1) ;
-
-    cout << "Before -->\t" << blk[0] << "\n" ;
-    blk[0] = set_bit(blk[0], pos) ;
-    cout << "After -->\t" << blk[0] << "\n" ;
-
-    delete[] blk ;
-    return 0 ;
-  }
-
-    /************************* testBit test *************************/
-
-  {
     // const auto abort = [&] {
     //   cerr << "usage: " << argv[0] << " <pos>\n" ;
     //   exit(EXIT_FAILURE);
@@ -183,12 +158,37 @@ int main(int argc, char** argv) {
     // block *blk = new block[1] ;
     // prg.random_block(blk, 1) ;
 
-    // cout << "blk --> " << blk[0] << "\n" ;
-    // bool the_bool = test_bit(blk[0], pos) ;
-    // cout << "bool --> " << the_bool << "\n" ;
-    // cout << "blk --> " << blk[0] << "\n" ;
+    // cout << "Before -->\t" << blk[0] << "\n" ;
+    // blk[0] = set_bit(blk[0], pos) ;
+    // cout << "After -->\t" << blk[0] << "\n" ;
 
     // delete[] blk ;
     // return 0 ;
+  }
+
+    /************************* testBit test *************************/
+
+  {
+    const auto abort = [&] {
+      cerr << "usage: " << argv[0] << " <pos>\n" ;
+      exit(EXIT_FAILURE);
+    } ;
+
+    if (argc != 2)
+      abort() ;
+
+    int pos = atoi(argv[1]) ;
+
+    PRG prg ;
+    block *blk = new block[1] ;
+    prg.random_block(blk, 1) ;
+
+    cout << "blk --> " << blk[0] << "\n" ;
+    bool the_bool = test_bit(blk[0], pos) ;
+    cout << "bool --> " << the_bool << "\n" ;
+    cout << "blk --> " << blk[0] << "\n" ;
+
+    delete[] blk ;
+    return 0 ;
   }
 }

@@ -823,13 +823,18 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
 
   /************************* Delete and Return *************************/
 
+  cout << "Going to free\n" ;
   for (int b = 0 ; b < batch_size ; b++)
     delete[] single_bools[b] ;
-  for (int i = 0 ; i < num_blocks ; i++)
-    delete[] hots[i] ;
+  delete[] single_bools ;
+  cout << "Freed single_bools\n" ;
+  for (int b = 0 ; b < batch_size ; b++)
+    delete[] hots[b] ;
   delete[] hots ;
-  delete[] single_bools ; delete[] bs ;
+  cout << "Freed hots\n" ;
+  delete[] bs ;
   delete[] r0s ; delete[] r1s ; delete[] rcv_ots ;
+  cout << "Freed OT stuff\n" ;
   
   return ohes ;
 }

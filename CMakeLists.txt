@@ -14,12 +14,6 @@ include_directories(${EMP-TOOL_INCLUDE_DIR})
 # message("This is ${EMP-TOOL_LIBRARIES}")
 # message("This is ${EMP-OT_INCLUDE_DIR}")
 
-add_executable(test "test.cpp")
-target_link_libraries(test ${EMP-TOOL_LIBRARIES})
-
-add_executable(multi "multi.cpp")
-target_link_libraries(multi ${EMP-TOOL_LIBRARIES})
-
 add_executable(ppohe "pparty_ohe.cpp")
 target_link_libraries(ppohe ${EMP-TOOL_LIBRARIES})
 
@@ -31,9 +25,6 @@ target_link_libraries(vrot ${EMP-TOOL_LIBRARIES})
 
 add_executable(throt "check_throt.cpp")
 target_link_libraries(throt ${EMP-TOOL_LIBRARIES})
-
-add_executable(tsb "test_send_block.cpp")
-target_link_libraries(tsb ${EMP-TOOL_LIBRARIES})
 
 add_executable(ut "util_test.cpp")
 target_link_libraries(ut ${EMP-TOOL_LIBRARIES})
