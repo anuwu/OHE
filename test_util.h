@@ -163,9 +163,9 @@ int n_to_bytes(int n) {
 bool test_bit(const block& blk, int i) {
   uint64_t *data = (uint64_t*)&blk ;
   if (i < 64)
-    return data[0] & (1 << i) ;
+    return data[0] & (1ULL << i) ;
   else
-    return data[1] & (1 << (i-64)) ;
+    return data[1] & (1ULL << (i-64)) ;
 }
 
 inline block left_shift(const block &blk, int shift) {

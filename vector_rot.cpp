@@ -208,14 +208,14 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
 
   // Initialize
   prg.random_bool(single_bools, n) ;
-  for (int i = 0 ; i < num_blocks ; i++) 
+  for (int i = 0 ; i < num_blocks ; i++)
     ohe[i] = zero_block ;
 
   // Handle base case
   if (n == 1) {
-    if (party == ALICE) {
+    if (party == ALICE)
       ohe[0] = set_bit(ohe[0], single_bools[0] ? 1 : 0) ;    
-    } else {
+    else {
       if (single_bools[0]) {
         ohe[0] = set_bit(ohe[0], 1) ;
         ohe[0] = set_bit(ohe[0], 0) ;
@@ -233,17 +233,13 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
   // Declare
   int64_t rot_comms = ot1->io->counter ;
   int ohe_size = 1 << n ; int num_ots = ohe_size - n - 1 ;
-  bool *ohe_bool = new bool[ohe_size] ;
-  block *hot = new block[ohe_size] ; 
+  block *hot = new block[num_blocks] ;
 
   // Initialize
-  for (int i = 0 ; i < ohe_size ; i++)
-    ohe_bool[i] = false ;
-  // First entry in hot[] is a share of 1
-  for (int i = 0 ; i < ohe_size ; i++)
+  for (int i = 0 ; i < num_blocks ; i++)
     hot[i] = zero_block ;
   if (party == ALICE)
-    hot[0] = set_bit(hot[0], 0) ; 
+    hot[0] = set_bit(hot[0], 0) ;
 
   /************************* Preparing metadata for GMT to OHE conversion  *************************/
 
@@ -312,7 +308,7 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
   // Set the singleton boolean terms
   for (int i = 0 ; i < n ; i++)
     if (single_bools[i])
-      hot[i+1] = set_bit(hot[i+1], 0) ;
+      hot[(i+1)/128] = set_bit(hot[(i+1)/128], (i+1)%128) ;
 
   // Declare intermediate variables
   int largest_flat_bits = comb(n, n/2) ;
@@ -335,9 +331,10 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
     // Flattening
     int index_restore = index ;
     for (int i = 0 ; i < small_flat_bits ; i++, index++) {
-      xorBlocks_arr(msg, r0+index-n-1, r1+index-n-1, 1) ; 
-      xorBlocks_arr(msg, hot+remaining_gmt[index], 1) ;
-      copyBits(msgs+i/128, i%128, msg, 0, 1) ;
+      bool the_bool = test_bit(r0[index-n-1], 0) ^ test_bit(r1[index-n-1], 0) ;
+      the_bool = the_bool ^ test_bit(hot[remaining_gmt[index]/128], remaining_gmt[index]%128) ;
+      if (the_bool)
+        msgs[i/128] = set_bit(msgs[i/128], i%128) ;
       msg_bits[i] = single_bools[singleton_gmt[index]] ^ b[index-n-1] ;
     }
 
@@ -366,17 +363,17 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
     // Unflattening
     index = index_restore ;
     for (int i = 0 ; i < small_flat_bits ; i++, index++) {
-      copyBits(rcv_msg, 0, rcv_msgs+i/128, i%128, 1) ;
-      copyBlocks_arr(hot+index, rcv_ot+index-n-1, 1) ;
-      if (single_bools[singleton_gmt[index]])
-        xorBlocks_arr(hot+index, rcv_msg, 1) ;
-      if (single_bools[singleton_gmt[index]])
-        xorBlocks_arr(hot+index, hot+remaining_gmt[index], 1) ;
-      
+      bool the_bool = test_bit(rcv_ot[index-n-1], 0) ;
+      if (single_bools[singleton_gmt[index]]) {
+        the_bool = the_bool ^ test_bit(rcv_msgs[i/128], i%128) ;
+        the_bool = the_bool ^ test_bit(hot[remaining_gmt[index]/128], remaining_gmt[index]%128) ;
+      }
       if (rcv_bits[i])
-        xorBlocks_arr(hot+index, r1+index-n-1, 1) ;
+        the_bool = the_bool ^ test_bit(r1[index-n-1], 0) ;
       else
-        xorBlocks_arr(hot+index, r0+index-n-1, 1) ;
+        the_bool = the_bool ^ test_bit(r0[index-n-1], 0) ;
+      if (the_bool)
+        hot[index/128] = set_bit(hot[index/128], index%128) ;
     }
   }
 
@@ -390,22 +387,20 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
 
   /************************* Convert GMT to OHE *************************/
   
-  ohe_bool[ohe_size-1] = test_bit(hot[ohe_size-1], 0) ;
+  copyBits(ohe+(ohe_size-1)/128, (ohe_size-1)%128, hot+(ohe_size-1)/128, (ohe_size-1)%128, 1) ;
   for (int i = 0 ; i < conv_left.size() ; i++) {
-    bool the_bool = ohe_bool[conv_right1[i]] ;
+    bool the_bool = test_bit(ohe[conv_right1[i]/128], conv_right1[i]%128) ;
     for (int j = 0 ; j < conv_right2[i].size() ; j++)
-      the_bool = the_bool ^ test_bit(hot[conv_right2[i][j]], 0) ;
-    ohe_bool[conv_left[i]] = the_bool ;
+      the_bool = the_bool ^ test_bit(hot[conv_right2[i][j]/128], conv_right2[i][j]%128) ;
+    if (the_bool)
+      ohe[conv_left[i]/128] = set_bit(ohe[conv_left[i]/128], conv_left[i]%128) ;
   }
-  for (int i = 0 ; i < ohe_size ; i++)
-    if (ohe_bool[i]) 
-      ohe[i/128] = set_bit(ohe[i/128], i%128) ; 
 
   /************************* Delete and Return *************************/
 
   delete[] single_bools ; delete[] b ;
   delete[] r0 ; delete[] r1 ; delete[] rcv_ot ;
-  delete[] hot ; delete[] ohe_bool ;
+  delete[] hot ;
   return ohe ;
 }
 
@@ -652,7 +647,6 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   uint64_t rot_comms = ot1->io->counter ;
   int ohe_size = 1 << n ; 
   int num_ots = ohe_size - n - 1 ;
-  bool *ohe_bool = new bool[ohe_size] ;    // This is a temporary storage variable and does not need to replicated per batch
   block **hots = new block*[batch_size] ;
   block *r0s = new block[batch_size*num_ots] ;
   block *r1s = new block[batch_size*num_ots] ;
@@ -660,13 +654,12 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   bool *bs = new bool[batch_size*num_ots] ;
 
   // Initialize
-  initialize_bools(ohe_bool, ohe_size) ;
   for (int b = 0 ; b < batch_size ; b++) {
-    hots[b] = new block[ohe_size] ;
-    for (int i = 0 ; i < ohe_size ; i++)
+    hots[b] = new block[num_blocks] ;
+    for (int i = 0 ; i < num_blocks ; i++)
       hots[b][i] = zero_block ;
     if (party == ALICE)
-      hots[b][0] = set_bit(hots[b][0], 0) ;
+      hots[b][0] = set_bit(hots[b][0], 0) ;      
   }    
   prg.random_bool(bs, batch_size*num_ots) ;
 
@@ -730,12 +723,10 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   andBlocks_arr(rcv_ots, mask, batch_size*num_ots) ;
 
   // Set the singleton boolean terms
-  for (int b = 0 ; b < batch_size ; b++) {
-    for (int i = 0 ; i < n ; i++) {
+  for (int b = 0 ; b < batch_size ; b++)
+    for (int i = 0 ; i < n ; i++)
       if (single_bools[b][i])
-        hots[b][i+1] = set_bit(hots[b][i+1], 0) ;
-    }
-  }
+        hots[b][(i+1)/128] = set_bit(hots[b][(i+1)/128], (i+1)%128) ;
 
   // Iterate over all product terms
   int largest_flat_bits = comb(n, n/2) ;
@@ -759,9 +750,10 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
     int index_restore = index ;
     for (int b = 0 ; b < batch_size ; b++) {
       for (int i = 0 ; i < small_flat_bits ; i++, index++) {
-        xorBlocks_arr(msg, r0s+b*num_ots+index-n-1, r1s+b*num_ots+index-n-1, 1) ; 
-        xorBlocks_arr(msg, hots[b]+remaining_gmt[index], 1) ;
-        copyBits(msgs+(b*small_flat_bits+i)/128, (b*small_flat_bits+i)%128, msg, 0, 1) ;
+        bool the_bool = test_bit(r0s[b*num_ots+index-n-1], 0) ^ test_bit(r1s[b*num_ots+index-n-1], 0) ;
+        the_bool = the_bool ^ test_bit(hots[b][remaining_gmt[index]/128], remaining_gmt[index]%128) ;
+        if (the_bool)
+          msgs[(b*small_flat_bits+i)/128] = set_bit(msgs[(b*small_flat_bits+i)/128], (b*small_flat_bits+i)%128) ;
         msg_bits[b*small_flat_bits+i] = single_bools[b][singleton_gmt[index]] ^ bs[b*num_ots+index-n-1] ;
       } 
       index = index_restore ;
@@ -793,21 +785,20 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
     for (int b = 0 ; b < batch_size ; b++) {
       index = index_restore ;
       for (int i = 0 ; i < small_flat_bits ; i++, index++) {
-        copyBits(rcv_msg, 0, rcv_msgs+(b*small_flat_bits+i)/128, (b*small_flat_bits+i)%128, 1) ;
-        copyBlocks_arr(hots[b]+index, rcv_ots+b*num_ots+index-n-1, 1) ;
-        if (single_bools[b][singleton_gmt[index]])
-          xorBlocks_arr(hots[b]+index, rcv_msg, 1) ;
-        if (single_bools[b][singleton_gmt[index]])
-          xorBlocks_arr(hots[b]+index, hots[b]+remaining_gmt[index], 1) ;
-        
+        bool the_bool = test_bit(rcv_ots[b*num_ots+index-n-1], 0) ;
+        if (single_bools[b][singleton_gmt[index]]) {
+          the_bool = the_bool ^ test_bit(rcv_msgs[(b*small_flat_bits+i)/128], (b*small_flat_bits+i)%128) ;
+          the_bool = the_bool ^ test_bit(hots[b][remaining_gmt[index]/128], remaining_gmt[index]%128) ;
+        }
         if (rcv_bits[b*small_flat_bits+i])
-          xorBlocks_arr(hots[b]+index, r1s+b*num_ots+index-n-1, 1) ;
+          the_bool = the_bool ^ test_bit(r1s[b*num_ots+index-n-1], 0) ;
         else
-          xorBlocks_arr(hots[b]+index, r0s+b*num_ots+index-n-1, 1) ;
+          the_bool = the_bool ^ test_bit(r0s[b*num_ots+index-n-1], 0) ;
+        if (the_bool)
+          hots[b][index/128] = set_bit(hots[b][index/128], index%128) ;
       }
     }
   }
-
 
   // Delete intermediate variables
   delete[] msgs ; delete[] rcv_msgs ; delete[] msg ; delete[] rcv_msg ;
@@ -820,27 +811,22 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   /************************* Convert GMT to OHE *************************/
 
   for (int b = 0 ; b < batch_size ; b++) {
-    ohe_bool[ohe_size-1] = test_bit(hots[b][ohe_size-1], 0) ;
+    copyBits(ohes[b]+(ohe_size-1)/128, (ohe_size-1)%128, hots[b]+(ohe_size-1)/128, (ohe_size-1)%128, 1) ;
     for (int i = 0 ; i < conv_left.size() ; i++) {
-      bool the_bool = ohe_bool[conv_right1[i]] ;
+      bool the_bool = test_bit(ohes[b][conv_right1[i]/128], conv_right1[i]%128) ;
       for (int j = 0 ; j < conv_right2[i].size() ; j++)
-        the_bool = the_bool ^ test_bit(hots[b][conv_right2[i][j]], 0) ;
-      ohe_bool[conv_left[i]] = the_bool ;
+        the_bool = the_bool ^ test_bit(hots[b][conv_right2[i][j]/128], conv_right2[i][j]%128) ;
+      if (the_bool)
+        ohes[b][conv_left[i]/128] = set_bit(ohes[b][conv_left[i]/128], conv_left[i]%128) ;
     }
-
-    for (int i = 0 ; i < ohe_size ; i++)
-      if (ohe_bool[i]) 
-        ohes[b][i/128] = set_bit(ohes[b][i/128], i%128) ; 
-    initialize_bools(ohe_bool, ohe_size) ;
   }
 
   /************************* Delete and Return *************************/
 
-  delete[] ohe_bool ;
-  for (int b = 0 ; b < batch_size ; b++) {
-    delete[] hots[b] ;
+  for (int b = 0 ; b < batch_size ; b++)
     delete[] single_bools[b] ;
-  }
+  for (int i = 0 ; i < num_blocks ; i++)
+    delete[] hots[i] ;
   delete[] hots ;
   delete[] single_bools ; delete[] bs ;
   delete[] r0s ; delete[] r1s ; delete[] rcv_ots ;
