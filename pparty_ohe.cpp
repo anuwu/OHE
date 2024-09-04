@@ -61,7 +61,6 @@ unordered_map<int, NetIO*> get_pairwise_channels_threaded(int party, int parties
     return ios ;
 }
 
-
 template <typename T>
 class Coordinator {
 public :

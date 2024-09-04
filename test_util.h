@@ -1,3 +1,6 @@
+#ifndef OHE_TEST_UTIL_H
+#define OHE_TEST_UTIL_H
+
 #include "emp-tool/emp-tool.h"
 #include "emp-ot/emp-ot.h"
 #include <unordered_map>
@@ -383,3 +386,5 @@ vector<int> get_ohe_ranks (vector<int> &cop, int n, int singleton) {
 
   return ret ;
 }
+
+#endif
