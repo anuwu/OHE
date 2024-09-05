@@ -9,7 +9,6 @@ COT<NetIO>* ot_channel;
 
 constexpr int threads = 1;
 
-
 void experiment(const std::vector<std::size_t>& ot_sizes, int32_t div) {
   const auto start_time = clock_start();
   const auto start_comm = channel->counter;

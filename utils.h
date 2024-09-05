@@ -1,7 +1,6 @@
-#ifndef OHE_TEST_UTIL_H
-#define OHE_TEST_UTIL_H
+#ifndef EMP_OHE_UTILS_H
+#define EMP_OHE_UTILS_H
 
-#include "emp-tool/emp-tool.h"
 #include "emp-ot/emp-ot.h"
 #include <unordered_map>
 #include <unordered_set>
@@ -115,61 +114,29 @@ inline void stretch_bool(block* bs, bool b, int len) {
 }
 
 /**** Misc ****/
-inline void initialize_blocks(block *blk, int num_blocks, const block init = zero_block) {
+inline void initialize_blocks(block *blk, int num_blocks, const block init=zero_block) {
   for (int i = 0 ; i < num_blocks ; i++)
     blk[i] = init ;
 }
 
-inline void initialize_bools(bool *bs, int num_bools, const bool init = false) {
+inline void initialize_bools(bool *bs, int num_bools, const bool init=false) {
   for (int i = 0 ; i < num_bools ; i++)
     bs[i] = init ;
 }
 
-bool get_bool_from_block(const block *blk) {
-    uint64_t *data = (uint64_t*) blk ;
-    return data[1] & 1 ;
-}
+bool get_bool_from_block(const block *blk) ;
 
-bool get_bools_from_block(const block *blk) {
-    bool *b = new bool[128] ;
-    uint64_t *data = (uint64_t*) blk ;
+bool get_bools_from_block(const block *blk) ;
 
-    for (int i = 0 ; i < 64 ; i++) {
-        b[63-i] = (data[0] >> i) & 1 ;
-        b[127-i] = (data[1] >> i) & 1 ;
-    }
+bool check_equal(block *b1, block *b2) ;
 
-    return b ;
-}
+bool xorr(bool b1, bool b2) ;
 
-bool check_equal(block *b1, block *b2) {
-  uint64_t *d1 = (uint64_t*)b1 ;
-  uint64_t *d2 = (uint64_t*)b2 ;
+int n_to_blocks(int n) ;
 
-  return d1[0] == d2[0] && d1[1] == d2[1] ;
-}
+int n_to_bytes(int n) ;
 
-bool xorr(bool b1, bool b2) {
-    return b1 ? (!b2) : b2 ;
-}
-
-int n_to_blocks(int n) {
-  // return n < 8 ? 1 : 1 << (n-7) ;
-  return 1 << max(n-7, 0) ;
-}
-
-int n_to_bytes(int n) {
-  // return n < 4 ? 1 : 1 << (n-3) ;
-  return 1 << max(n-3, 0) ;
-}
-
-bool test_bit(const block& blk, int i) {
-  uint64_t *data = (uint64_t*)&blk ;
-  if (i < 64)
-    return data[0] & (1ULL << i) ;
-  else
-    return data[1] & (1ULL << (i-64)) ;
-}
+bool test_bit(const block& blk, int i) ;
 
 inline block left_shift(const block &blk, int shift) {
   uint64_t* data = (uint64_t*)&blk ;
@@ -251,140 +218,25 @@ inline void copyBits(block *to, int pos1, block *from, int pos2, int bits) {
 
 /************************* GMT to OHE Conversion *************************/
 
-uint64_t comb(uint64_t n, uint64_t k)
-{
-    if (k > n) return 0;
-    if (k * 2 > n) k = n-k;
-    if (k == 0) return 1;
+uint64_t comb(uint64_t n, uint64_t k) ;
 
-    int result = n;
-    for( int i = 2; i <= k; ++i ) {
-        result *= (n-i+1);
-        result /= i;
-    }
-    return result;
-}
+int rankk(vector<int> &subset, int n) ;
 
-int rankk(vector<int> &subset, int n) {
-    int rem_items = n ;
-    int l = subset.size() ;
-    int acc = 0 ;
-    for (int ind = 0 ; ind < l ; ind++) {
-        int entry = subset[ind] ;
-        int index = 0 ;
-        for (int head_done = 0 ; head_done < rem_items + entry - n ; head_done++)
-            index += comb(rem_items-head_done-1, l-ind-1) ;
+int total_rank(vector<int> &subset, int n) ;
 
-        acc += index ;
-        rem_items = n - entry - 1 ;
-    }
+unordered_map<int, vector<vector<int>>> get_subsets(int n) ;
 
-    return acc ;
-}
+vector<vector<int>> counts_to_subsets(vector<int> &counts, int curr) ;
 
-int total_rank(vector<int> &subset, int n) {
-    int r = rankk(subset, n) ;
+vector<int> get_ohe_ranks (vector<int> &cop, int n, int singleton) ;
 
-    for (int i = 0 ; i < (int)subset.size() ; i++)
-        r += comb(n, i) ;
 
-    return r ;
-}
+/************************* Old OHE stuff *************************/
 
-unordered_map<int, vector<vector<int>>> get_subsets(int n) {
-    assert(n > 0) ;
+vector<pair<int,int>> get_round_robin_scheme(int party, int parties) ;
 
-    unordered_map<int, vector<vector<int>>> ret ;
-    ret[0] = vector<vector<int>>() ;
-    ret[1] = vector<vector<int>>() ;
-    
-    for (int i = 0 ; i < n ; i++) {
-        vector<int> vec ;
-        vec.push_back(i) ;
-        ret[1].push_back(vec) ;
-    }    
+unordered_map<int, NetIO*> get_pairwise_channels(int party, int parties, int start_port, vector<pair<int,int>> robin) ; 
 
-    for (int i = 2 ; i < n+1 ; i++) {
-        ret[i] = vector<vector<int>>() ;
-        for (int j = 0 ; j < (int)ret[i-1].size() ; j++) {
-            vector<int> subset = ret[i-1][j] ;
-            int l = subset.size() ;
-            int last_entry = subset[l-1] ;
-            if (last_entry < n-1) {
-                for (int k = last_entry + 1 ; k < n ; k++) {
-                    vector<int> curr = subset ;
-                    curr.push_back(k) ;
-                    ret[i].push_back(curr) ;
-                }
-            }
-        }
-    }
-
-    return ret ;
-}
-
-vector<vector<int>> counts_to_subsets(vector<int> &counts, int curr) {
-    if (curr == 0) {
-        vector<vector<int>> ans ;
-        vector<int> empty ;
-
-        if (counts[0] == 0)
-            ans.push_back(empty) ;
-        else if (counts[0] == 1) {
-            empty.push_back(0) ;
-            ans.push_back(empty) ;
-        } else {
-            ans.push_back(empty) ;
-            empty.push_back(0) ;
-            ans.push_back(empty) ;
-        }
-
-        return ans ;
-    }
-
-    vector<vector<int>> sub_ans = counts_to_subsets(counts, curr-1) ;
-    if (counts[curr] == 0)
-        return sub_ans ;
-    else if (counts[curr] == 1) {
-        for (auto it1 = sub_ans.begin() ; it1 != sub_ans.end() ; it1++)
-            it1->push_back(curr) ;
-
-        return sub_ans ;
-    } else {
-        int sz = sub_ans.size() ;
-        vector<vector<int>> ans = sub_ans ;
-        for (int i = 0 ; i < sz ; i++) {
-            ans[i].push_back(curr) ;
-            ans.push_back(sub_ans[i]) ;
-        }
-
-        return ans ;
-    }
-}
-
-vector<int> get_ohe_ranks (vector<int> &cop, int n, int singleton) {
-  unordered_set<int> cop_set ;
-  for (auto it = cop.begin() ; it != cop.end() ; it++)
-    cop_set.insert(*it) ;
-  vector<int> cop_count ;
-  for (int k = 0 ; k < n ; k++) {
-    if (k == singleton)
-      cop_count.push_back(0) ;
-    else if (cop_set.find(k) != cop_set.end())
-      cop_count.push_back(2) ;
-    else
-      cop_count.push_back(1); 
-  }
-
-  vector<vector<int>> cop_subsets = counts_to_subsets(cop_count, n-1) ;
-  vector<int> ret ;
-
-  for (auto it = cop_subsets.begin() ; it != cop_subsets.end() ; it++) {
-    int rnk = total_rank(*it, n) ;
-    ret.push_back(rnk) ;
-  }
-
-  return ret ;
-}
+unordered_map<int, NetIO*> get_pairwise_channels_threaded(int party, int parties, int start_port) ;
 
 #endif

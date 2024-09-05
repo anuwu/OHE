@@ -1,5 +1,4 @@
 #include "emp-ot/emp-ot.h"
-#include "test_util.h"
 #include <iostream>
 #include <time.h>
 
@@ -11,13 +10,13 @@ constexpr int threads = 1 ;
 int main(int argc, char** argv) {
   /************************* Parse Input *************************/
   
-	const auto abort = [&] {
+  const auto abort = [&] {
 	cerr
-			<< "usage: "
-			<< argv[0]
-			<< "<party>"
-			<< "<port>"
-			<< "\n";
+    << "usage: "
+    << argv[0]
+    << "<party>"
+    << "<port>"
+    << "\n";
 	exit(EXIT_FAILURE);
 	} ;
 

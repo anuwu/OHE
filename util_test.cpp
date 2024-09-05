@@ -1,5 +1,5 @@
 #include "emp-ot/emp-ot.h"
-#include "test_util.h"
+#include "utils.h"
 #include <iostream>
 #include <unordered_set>
 #include <time.h>
@@ -8,6 +8,7 @@ using namespace std ;
 using namespace emp ;
 
 constexpr int threads = 1 ;
+
 
 int main(int argc, char** argv) {
   /************************* GMT to OHE converter *************************/
