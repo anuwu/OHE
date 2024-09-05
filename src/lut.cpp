@@ -23,5 +23,5 @@ TT identity (int n) {
 
 TT read_tt() {
   // Read from file
-  ;
+  return identity(1) ;
 }

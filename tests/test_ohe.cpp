@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
     cerr
       << "usage: "
       << argv[0]
-      << " <party-id> <port> <n> <iknp/ferret> <ohe/gmt> <batched> \n";
+      << " <party-id> <port> <n> <iknp/ferret> <ohe/gmt> <batched> <opt:batch_size> \n";
     exit(EXIT_FAILURE);
    };
 
@@ -25,9 +25,15 @@ int main(int argc, char** argv) {
   NetIO *io ;
   COT<NetIO> *ot1, *ot2 ;
 
-  // Check arguments
-  if (argc != 7)
-    abort();
+  // Check command line arguments
+  if (argc < 7)
+    abort() ;
+  if (argc == 7) {
+    if (atoi(argv[6]))
+      abort() ;
+  }
+  else if (argc > 8)
+    abort() ;
   
   // Parse arguments
   party = atoi(argv[1]) ;

@@ -20,5 +20,5 @@ fi
 for n in $(seq $5 $6);
 do
   printf "n = $n\n" 
-  ./../build/benches/bench_ohe $1 $2 $n $3 $4 1 $7
+  ./../build/bin/bench_ohe $1 $2 $n $3 $4 1 $7
 done
