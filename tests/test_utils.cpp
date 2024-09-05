@@ -167,29 +167,53 @@ int main(int argc, char** argv) {
     // return 0 ;
   }
 
-    /************************* testBit test *************************/
+  /************************* testBit test *************************/
 
   {
+    // const auto abort = [&] {
+    //   cerr << "usage: " << argv[0] << " <pos>\n" ;
+    //   exit(EXIT_FAILURE);
+    // } ;
+
+    // if (argc != 2)
+    //   abort() ;
+
+    // int pos = atoi(argv[1]) ;
+
+    // PRG prg ;
+    // block *blk = new block[1] ;
+    // prg.random_block(blk, 1) ;
+
+    // cout << "blk --> " << blk[0] << "\n" ;
+    // bool the_bool = test_bit(blk[0], pos) ;
+    // cout << "bool --> " << the_bool << "\n" ;
+    // cout << "blk --> " << blk[0] << "\n" ;
+
+    // delete[] blk ;
+    // return 0 ;
+  }
+
+
+  /************************* zero wrap-over *************************/
+
+  {
+
     const auto abort = [&] {
-      cerr << "usage: " << argv[0] << " <pos>\n" ;
+      cerr << "usage: " << argv[0] << "\n" ;
       exit(EXIT_FAILURE);
     } ;
 
-    if (argc != 2)
+    if (argc != 1)
       abort() ;
 
-    int pos = atoi(argv[1]) ;
+    uint64_t index = 0ULL ;
+    cout << "This is zero --> " << index << "\n" ;
+    index = ~index ;
+    cout << "This is all 1s --> " << index << "\n" ;
+    index += 1 ;
+    cout << "This is wrap-over --> " << index << "\n" ;
 
-    PRG prg ;
-    block *blk = new block[1] ;
-    prg.random_block(blk, 1) ;
-
-    cout << "blk --> " << blk[0] << "\n" ;
-    bool the_bool = test_bit(blk[0], pos) ;
-    cout << "bool --> " << the_bool << "\n" ;
-    cout << "blk --> " << blk[0] << "\n" ;
-
-    delete[] blk ;
     return 0 ;
   }
+
 }
