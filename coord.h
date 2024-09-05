@@ -23,13 +23,9 @@ public :
 	this->ots = ots ;
   }
 
-  void dummy_ots() ;
+  int dummy_ots() ;
 
-  void dummy_ots_threaded() ;
-
-  int64_t test_gmt() ;
-
-  int64_t test_gmt_threaded() ;
+  int dummy_ots_threaded() ;
 } ;
 
 #endif

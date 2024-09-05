@@ -1,4 +1,4 @@
-#include "ohe_old.h"
+#include "coord.h"
 #include "utils.h"
 #include <iostream>
 #include <time.h>
@@ -37,17 +37,17 @@ int main(int argc, char** argv) {
   else 
     ios = get_pairwise_channels_threaded(party, parties, start_port) ;
 
-  auto start = clock_start() ;
   int64_t comms ;
+  auto start = clock_start() ;
   if (ot_type == "otnp") {
     unordered_map<int, OTNP<NetIO>*> ots ;
     for (auto &it : ios)
       ots[it.first] = new OTNP<NetIO>(it.second) ;
     Coordinator<OTNP<NetIO>> cood(party, parties, length, loglength, robin, ots) ;
     if (threaded)
-      comms = cood.test_gmt_threaded() ;
+      comms = cood.dummy_ots_threaded() ;
     else
-      comms = cood.test_gmt() ;
+      comms = cood.dummy_ots() ;
   }
   else if (ot_type == "iknp") {
     unordered_map<int, IKNP<NetIO>*> ots ;
@@ -55,9 +55,9 @@ int main(int argc, char** argv) {
       ots[it.first] = new IKNP<NetIO>(it.second) ;
     Coordinator<IKNP<NetIO>> cood(party, parties, length, loglength, robin, ots) ;
     if (threaded)
-      comms = cood.test_gmt_threaded() ; 
+      cood.dummy_ots_threaded() ; 
     else
-      comms = cood.test_gmt() ;
+      cood.dummy_ots() ;
   }
   else if (ot_type == "simple") {
     unordered_map<int, OTCO<NetIO>*> ots ;
@@ -65,9 +65,9 @@ int main(int argc, char** argv) {
       ots[it.first] = new OTCO<NetIO>(it.second) ;
     Coordinator<OTCO<NetIO>> cood(party, parties, length, loglength, robin, ots) ;
     if (threaded)
-      comms = cood.test_gmt_threaded() ;
+      comms = cood.dummy_ots_threaded() ;
     else
-      comms = cood.test_gmt() ;
+      comms = cood.dummy_ots() ;
   }
   else if (ot_type == "ferret") {
     unordered_map<int, FerretCOT<NetIO>*> ots ;
@@ -76,9 +76,9 @@ int main(int argc, char** argv) {
       
     Coordinator<FerretCOT<NetIO>> cood(party, parties, length, loglength, robin, ots) ;
     if (threaded)
-      comms = cood.test_gmt_threaded() ;
+      comms = cood.dummy_ots_threaded() ;
     else 
-      comms = cood.test_gmt_threaded() ; 
+      comms = cood.dummy_ots() ; 
   } else {
     exit(1) ;
   }
