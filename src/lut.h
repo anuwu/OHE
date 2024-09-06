@@ -17,7 +17,7 @@ public :
   TT(int n, int m) {
     this->n = n ;
     this->m = m ;
-    this->m_blocks = n_to_blocks(m) ;
+    this->m_blocks = (m+127)/128 ;
     this->tt_size = 1ULL << n ;
 
     this->table = new block*[tt_size] ;
@@ -27,6 +27,8 @@ public :
         this->table[i][m] = zero_block ;
     }
   }
+
+  friend ostream& operator<<(ostream &os, const TT &tt) ;
 
   ~TT() {
     for (uint64_t i = 0 ; i < this->tt_size ; i++)

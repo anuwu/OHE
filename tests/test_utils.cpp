@@ -180,7 +180,7 @@ void test5(int argc, char** argv) {
 
 int main(int argc, char** argv) {
   if (argc < 2) {
-    cerr << "Please supply more arguments\n" ;
+    cerr << "To view help : " << argv[0] << " <test_no> \n" ;
     exit(EXIT_FAILURE) ;
   }
 

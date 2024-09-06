@@ -7,6 +7,9 @@ target_link_libraries(test_ohe EMP-OHE)
 add_executable(test_coord "test_coord.cpp")
 target_link_libraries(test_coord EMP-OHE)
 
+add_executable(test_lut "test_lut.cpp")
+target_link_libraries(test_lut EMP-OHE)
+
 add_executable(test_david "test_david.cpp")
 target_link_libraries(test_david ${EMP-TOOL_LIBRARIES})
 
