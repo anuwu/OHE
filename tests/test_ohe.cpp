@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
   
   /************************* Create OT *************************/
 
-  io = new NetIO(party == ALICE ? nullptr : "127.0.0.1", port) ;
+  io = new NetIO(party == ALICE ? nullptr : "127.0.0.1", port, true) ;
   if (ot_type == "iknp") {
     ot1 = new IKNP<NetIO>(io) ;
     ot2 = new IKNP<NetIO>(io) ;

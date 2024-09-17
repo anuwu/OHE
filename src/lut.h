@@ -7,41 +7,43 @@
 using namespace std ;
 using namespace emp ;
 
-class TT {
+#define MAX_LUT_SIZE 20
+
+class LUT {
 public :
   int n ;
-  uint64_t tt_size ;
+  uint64_t lut_size ;
   int m, m_blocks ;
   block **table ;
 
-  TT(int n, int m) {
+  LUT(int n, int m) {
     this->n = n ;
     this->m = m ;
     this->m_blocks = (m+127)/128 ;
-    this->tt_size = 1ULL << n ;
+    this->lut_size = 1ULL << n ;
 
-    this->table = new block*[tt_size] ;
-    for (uint64_t i = 0 ; i < this->tt_size ; i++) {
+    this->table = new block*[lut_size] ;
+    for (uint64_t i = 0 ; i < this->lut_size ; i++) {
       this->table[i] = new block[m_blocks] ;
       for (int j = 0 ; j < m_blocks ; j++)
         this->table[i][m] = zero_block ;
     }
   }
 
-  friend ostream& operator<<(ostream &os, const TT &tt) ;
+  friend ostream& operator<<(ostream &os, const LUT &tt) ;
 
-  ~TT() {
-    for (uint64_t i = 0 ; i < this->tt_size ; i++)
+  ~LUT() {
+    for (uint64_t i = 0 ; i < this->lut_size ; i++)
       delete[] this->table[i] ;
     delete[] this->table ;
   }
 } ;
 
 // Generate identity truth table
-TT identity(int n) ; 
+LUT identity(int n) ; 
 
 // Read truth table
-TT read_tt() ;
+LUT read_lut_from_file(int n, int m, ifstream &handler) ;
 
 // Retrieve a from H(a)
 block* unhot(block *hot) ;
@@ -52,7 +54,7 @@ block* unhot(block *hot) ;
 block* rotate(block *hot, int rot) ;
 
 // Multiply with truth table
-block* eval_tt(TT table, block *hot) ;
+block* eval_lut(LUT table, block *hot) ;
 
 // Send and receive shares of output
 

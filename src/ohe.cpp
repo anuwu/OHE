@@ -65,8 +65,8 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
       ohe[0] = set_bit(ohe[0], b[0] ? 1 : 0) ;    
     } else {
       if (b[0]) {
-        ohe[0] = set_bit(ohe[0], 1) ;
-        ohe[0] = set_bit(ohe[0], 0) ;
+        SET_BIT(ohe, 0) ;
+        SET_BIT(ohe, 1) ;
       }
     }
 
@@ -214,8 +214,8 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
       ohe[0] = set_bit(ohe[0], single_bools[0] ? 1 : 0) ;    
     else {
       if (single_bools[0]) {
-        ohe[0] = set_bit(ohe[0], 1) ;
-        ohe[0] = set_bit(ohe[0], 0) ;
+        SET_BIT(ohe, 0) ;
+        SET_BIT(ohe, 1) ;
       }
     }
 
@@ -236,7 +236,7 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
   for (int i = 0 ; i < num_blocks ; i++)
     hot[i] = zero_block ;
   if (party == ALICE)
-    hot[0] = set_bit(hot[0], 0) ;
+    SET_BIT(hot, 0) ;
 
   /************************* Preparing metadata for GMT to OHE conversion  *************************/
 
@@ -305,7 +305,7 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
   // Set the singleton boolean terms
   for (int i = 0 ; i < n ; i++)
     if (single_bools[i])
-      hot[(i+1)/128] = set_bit(hot[(i+1)/128], (i+1)%128) ;
+      SET_BIT(hot, i+1) ;
 
   // Declare intermediate variables
   int largest_flat_bits = comb(n, n/2) ;
@@ -331,7 +331,7 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
       bool the_bool = test_bit(r0[index-n-1], 0) ^ test_bit(r1[index-n-1], 0) ;
       the_bool = the_bool ^ test_bit(hot[remaining_gmt[index]/128], remaining_gmt[index]%128) ;
       if (the_bool)
-        msgs[i/128] = set_bit(msgs[i/128], i%128) ;
+        SET_BIT(msgs, i) ;
       msg_bits[i] = single_bools[singleton_gmt[index]] ^ b[index-n-1] ;
     }
 
@@ -370,7 +370,7 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
       else
         the_bool = the_bool ^ test_bit(r0[index-n-1], 0) ;
       if (the_bool)
-        hot[index/128] = set_bit(hot[index/128], index%128) ;
+        SET_BIT(hot, index) ;
     }
   }
 
@@ -390,7 +390,7 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
     for (int j = 0 ; j < conv_right2[i].size() ; j++)
       the_bool = the_bool ^ test_bit(hot[conv_right2[i][j]/128], conv_right2[i][j]%128) ;
     if (the_bool)
-      ohe[conv_left[i]/128] = set_bit(ohe[conv_left[i]/128], conv_left[i]%128) ;
+      SET_BIT(ohe, conv_left[i]) ;
   }
 
   /************************* Delete and Return *************************/

@@ -7,6 +7,8 @@
 #include <vector>
 #include <iostream>
 
+#define SET_BIT(A, B) ((A)[(B)/128] = set_bit((A)[(B)/128], (B)%128))
+
 using namespace emp ;
 using namespace std ;
 

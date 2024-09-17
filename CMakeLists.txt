@@ -15,6 +15,7 @@ find_package(emp-tool)
 find_path(EMP-OT_INCLUDE_DIR emp-ot/emp-ot.h)
 include_directories(${EMP-TOOL_INCLUDE_DIR})
 
+# Set directories
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
