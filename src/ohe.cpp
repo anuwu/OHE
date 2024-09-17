@@ -62,7 +62,7 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
   for (int i = 0 ; i < num_blocks ; i++) 
     ohe[i] = zero_block ;
   if (party == ALICE) {
-      ohe[0] = set_bit(ohe[0], b[0] ? 1 : 0) ;    
+      SET_BIT(ohe, b[0] ? 1 : 0) ;    
     } else {
       if (b[0]) {
         SET_BIT(ohe, 0) ;
@@ -211,7 +211,7 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
   // Handle base case
   if (n == 1) {
     if (party == ALICE)
-      ohe[0] = set_bit(ohe[0], single_bools[0] ? 1 : 0) ;    
+      SET_BIT(ohe, single_bools[0] ? 1 : 0) ;
     else {
       if (single_bools[0]) {
         SET_BIT(ohe, 0) ;
@@ -417,12 +417,12 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
     for (int i = 0 ; i < num_blocks ; i++) 
       ohes[b][i] = zero_block ;
 
-    if (party == ALICE) {
-        ohes[b][0] = set_bit(ohes[b][0], first_bools[b] ? 1 : 0) ;    
-    } else {
+    if (party == ALICE)
+      SET_BIT(ohes[b], first_bools[b] ? 1 : 0) ;
+    else {
       if (first_bools[b]) {
-        ohes[b][0] = set_bit(ohes[b][0], 1) ;
-        ohes[b][0] = set_bit(ohes[b][0], 0) ;
+        SET_BIT(ohes[b], 0) ;
+        SET_BIT(ohes[b], 1) ;
       }
     }
   }
@@ -622,12 +622,12 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   // Handle Base Case
   if (n == 1) {
     for (int b = 0 ; b < batch_size ; b++) {
-      if (party == ALICE) {
-        ohes[b][0] = set_bit(ohes[b][0], single_bools[b][0] ? 1 : 0) ;    
-      } else {
+      if (party == ALICE)
+        SET_BIT(ohes[b], single_bools[b][0] ? 1 : 0) ;
+      else {
         if (single_bools[0]) {
-          ohes[b][0] = set_bit(ohes[b][0], 1) ;
-          ohes[b][0] = set_bit(ohes[b][0], 0) ;
+          SET_BIT(ohes[b], 0) ;
+          SET_BIT(ohes[b], 1) ;
         }
       }
     }
@@ -656,7 +656,7 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
     for (int i = 0 ; i < num_blocks ; i++)
       hots[b][i] = zero_block ;
     if (party == ALICE)
-      hots[b][0] = set_bit(hots[b][0], 0) ;      
+      SET_BIT(hots[b], 0) ;
   }    
   prg.random_bool(bs, batch_size*num_ots) ;
 
@@ -723,7 +723,7 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   for (int b = 0 ; b < batch_size ; b++)
     for (int i = 0 ; i < n ; i++)
       if (single_bools[b][i])
-        hots[b][(i+1)/128] = set_bit(hots[b][(i+1)/128], (i+1)%128) ;
+        SET_BIT(hots[b], i+1) ;
 
   // Iterate over all product terms
   int largest_flat_bits = comb(n, n/2) ;
@@ -750,7 +750,7 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
         bool the_bool = test_bit(r0s[b*num_ots+index-n-1], 0) ^ test_bit(r1s[b*num_ots+index-n-1], 0) ;
         the_bool = the_bool ^ test_bit(hots[b][remaining_gmt[index]/128], remaining_gmt[index]%128) ;
         if (the_bool)
-          msgs[(b*small_flat_bits+i)/128] = set_bit(msgs[(b*small_flat_bits+i)/128], (b*small_flat_bits+i)%128) ;
+          SET_BIT(msgs, b*small_flat_bits + i) ;
         msg_bits[b*small_flat_bits+i] = single_bools[b][singleton_gmt[index]] ^ bs[b*num_ots+index-n-1] ;
       } 
       index = index_restore ;
@@ -792,7 +792,7 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
         else
           the_bool = the_bool ^ test_bit(r0s[b*num_ots+index-n-1], 0) ;
         if (the_bool)
-          hots[b][index/128] = set_bit(hots[b][index/128], index%128) ;
+          SET_BIT(hots[b], index) ;
       }
     }
   }
@@ -814,7 +814,7 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
       for (int j = 0 ; j < conv_right2[i].size() ; j++)
         the_bool = the_bool ^ test_bit(hots[b][conv_right2[i][j]/128], conv_right2[i][j]%128) ;
       if (the_bool)
-        ohes[b][conv_left[i]/128] = set_bit(ohes[b][conv_left[i]/128], conv_left[i]%128) ;
+        SET_BIT(ohes[b], conv_left[i]) ;
     }
   }
 
