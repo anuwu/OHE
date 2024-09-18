@@ -36,12 +36,12 @@ bool xorr(bool b1, bool b2) {
     return b1 ? (!b2) : b2 ;
 }
 
-int n_to_blocks(int n) {
+int get_ohe_blocks(int n) {
   // return n < 8 ? 1 : 1 << (n-7) ;
   return 1 << max(n-7, 0) ;
 }
 
-int n_to_bytes(int n) {
+int get_ohe_bytes(int n) {
   // return n < 4 ? 1 : 1 << (n-3) ;
   return 1 << max(n-3, 0) ;
 }

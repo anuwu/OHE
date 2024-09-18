@@ -17,16 +17,18 @@ public :
   block **table ;
 
   LUT(int n, int m) {
+    // Fill parameters
     this->n = n ;
     this->m = m ;
     this->m_blocks = (m+127)/128 ;
     this->lut_size = 1ULL << n ;
 
+    // Allocate table
     this->table = new block*[lut_size] ;
     for (uint64_t i = 0 ; i < this->lut_size ; i++) {
       this->table[i] = new block[m_blocks] ;
       for (int j = 0 ; j < m_blocks ; j++)
-        this->table[i][m] = zero_block ;
+        this->table[i][j] = zero_block ;
     }
   }
 
@@ -43,19 +45,14 @@ public :
 LUT identity(int n) ; 
 
 // Read truth table
-LUT read_lut_from_file(int n, int m, ifstream &handler) ;
-
-// Retrieve a from H(a)
-block* unhot(block *hot) ;
-
-// Send and receive (x+a)
+LUT input_lut(int n, int m, string lut_path) ;
 
 // Rotate H(a) by (x+a)
-block* rotate(block *hot, int rot) ;
+block* rotate(int n, block *hot, uint64_t rot) ;
 
 // Multiply with truth table
-block* eval_lut(LUT table, block *hot) ;
+block* eval_lut(int n, LUT &lut, block *hot) ;
 
-// Send and receive shares of output
+// Send and receive shares of output => Need batching
 
 #endif

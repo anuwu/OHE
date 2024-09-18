@@ -11,6 +11,7 @@ constexpr int threads = 1 ;
 
 // GMT to OHE converter
 void test1(int argc, char** argv) {
+   // Abort message
   const auto abort = [&] {
     cerr
       << "usage: "
@@ -18,10 +19,10 @@ void test1(int argc, char** argv) {
       << " 1 <n> \n";
     exit(EXIT_FAILURE);
   } ;
-
   if (argc != 3)
     abort();
 
+  // Read arguments
   int n ;
   n = atoi(argv[2]) ;
 
@@ -84,92 +85,106 @@ void test1(int argc, char** argv) {
 
 // copyBits test
 void test2(int argc, char** argv) {
+  // Abort message
   const auto abort = [&] {
     cerr << "usage: " << argv[0] << " 2 <pos1> <pos2> <bits>\n" ;
     exit(EXIT_FAILURE);
   } ;
-
   if (argc != 5)
     abort();
 
-  PRG prg ;
-  block *blk1 = new block[1] ;
-  block *blk2 = new block[1] ;
+  // Read arguments
   int pos1 = atoi(argv[2]) ;
   int pos2 = atoi(argv[3]) ;
   int bits = atoi(argv[4]) ;
 
+  // Initialize blocks
+  PRG prg ;
+  block *blk1 = new block[1] ;
+  block *blk2 = new block[1] ;
   prg.random_block(blk1, 1) ;
   prg.random_block(blk2, 1) ;
 
+  // Print stuff
   cout << "Before Copy - \n" ;
   cout << *blk1 << "\n" ;
   cout << *blk2 << "\n" ;
-
   copyBits(blk1, pos1, blk2, pos2, bits) ;
-
   cout << "\nAfter Copy - \n" ;
   cout << *blk1 << "\n" ;
   cout << *blk2 << "\n" ;
+
+  // Delete stuff
+  delete[] blk1 ;
+  delete[] blk2 ;
 }
 
 // set_bit test
 void test3(int argc, char** argv) {
+  // Abort message
   const auto abort = [&] {
     cerr << "usage: " << argv[0] << " 3 <pos>\n" ;
     exit(EXIT_FAILURE);
   } ;
-
   if (argc != 3)
     abort() ;
 
+  // Read arguments
   int pos = atoi(argv[2]) ;
 
+  // Declare blocks
   PRG prg ;
   block *blk = new block[1] ;
   prg.random_block(blk, 1) ;
 
+  // Print stuff
   cout << "Before -->\t" << blk[0] << "\n" ;
   blk[0] = set_bit(blk[0], pos) ;
   cout << "After -->\t" << blk[0] << "\n" ;
 
+  // Delete stuff
   delete[] blk ;
 }
 
 // testBit test
 void test4(int argc, char** argv) {
+  // Abort message
   const auto abort = [&] {
     cerr << "usage: " << argv[0] << " 4 <pos>\n" ;
     exit(EXIT_FAILURE);
   } ;
-
   if (argc != 3)
     abort() ;
 
+  // Read arguments
   int pos = atoi(argv[2]) ;
 
+  // Initialize blocks
   PRG prg ;
   block *blk = new block[1] ;
   prg.random_block(blk, 1) ;
 
+  // Print stuff
   cout << "blk --> " << blk[0] << "\n" ;
   bool the_bool = test_bit(blk[0], pos) ;
   cout << "bool --> " << the_bool << "\n" ;
   cout << "blk --> " << blk[0] << "\n" ;
 
+  // Delete stuff
   delete[] blk ;
 }
 
 // zero-wrap over test
 void test5(int argc, char** argv) {
+  // Abort message
   const auto abort = [&] {
     cerr << "usage: " << argv[0] << " 5\n" ;
     exit(EXIT_FAILURE);
   } ;
-
   if (argc != 2)
     abort() ;
 
+  // Print stuff
   uint64_t index = 0ULL ;
   cout << "This is zero --> " << index << "\n" ;
   index = ~index ;

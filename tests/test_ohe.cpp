@@ -64,7 +64,7 @@ int main(int argc, char** argv) {
   if (batched) {
     // Declare and initialize
     int batch_size = 128 ;
-    int num_blocks = n_to_blocks(n) ;
+    int num_blocks = get_ohe_blocks(n) ;
     block **ohes ;
     block *rec ;
     
@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
     // Declare and initialize
     block *ohe, *rec ;
     int correct = 0 ;
-    int num_blocks = n_to_blocks(n) ;
+    int num_blocks = get_ohe_blocks(n) ;
 
     // Iterate over all test cases
     int no_tests = min(100, 10 * (1 << n)) ;

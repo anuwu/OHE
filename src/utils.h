@@ -8,6 +8,7 @@
 #include <iostream>
 
 #define SET_BIT(A, B) (A[(B)/128] = set_bit(A[(B)/128], (B)%128))
+#define TEST_BIT(A, B) test_bit(A[(B)/128], (B)%128)
 
 using namespace emp ;
 using namespace std ;
@@ -134,9 +135,9 @@ bool check_equal(block *b1, block *b2) ;
 
 bool xorr(bool b1, bool b2) ;
 
-int n_to_blocks(int n) ;
+int get_ohe_blocks(int n) ;
 
-int n_to_bytes(int n) ;
+int get_ohe_bytes(int n) ;
 
 bool test_bit(const block& blk, int i) ;
 

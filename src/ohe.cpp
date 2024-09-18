@@ -7,8 +7,8 @@ using namespace emp ;
 
 block* reconst_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *ohe, bool print) {
     // Declare and initialize
-    int num_blocks = n_to_blocks(n) ;
-    int comm_bytes = n_to_bytes(n) ;
+    int num_blocks = get_ohe_blocks(n) ;
+    int comm_bytes = get_ohe_bytes(n) ;
     block *rcv = new block[num_blocks] ;
     block *res = new block[num_blocks] ;
     block *zero = new block[1] ; 
@@ -53,7 +53,7 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
 
   // Declare
   PRG prg ;
-  int num_blocks = n_to_blocks(n) ;
+  int num_blocks = get_ohe_blocks(n) ;
   bool *b = new bool[n] ; 
   block *ohe = new block[num_blocks] ;
 
@@ -106,7 +106,7 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
   /************************* Correct Random OTs *************************/
 
   // Declare intermediate variables
-  int largest_block = n_to_blocks(n-1) ;
+  int largest_block = get_ohe_blocks(n-1) ;
   block *msg = new block[largest_block] ;
   block *rcv_msg = new block[largest_block] ;
   block *cross_share = new block[largest_block] ;
@@ -117,8 +117,8 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
   // Iterate over rounds
   for (int r = 2 ; r <= n ; r++) {
     // Initialize
-    int comm_bytes = n_to_bytes(r-1) ;
-    int small_blocks = n_to_blocks(r-1) ;
+    int comm_bytes = get_ohe_bytes(r-1) ;
+    int small_blocks = get_ohe_blocks(r-1) ;
     initialize_blocks(rcv_msg, small_blocks) ; 
 
     // Setup r0, r1 and received OTs
@@ -199,14 +199,13 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
 
   // Declare
   PRG prg ;
-  int num_blocks = n_to_blocks(n) ;
+  int num_blocks = get_ohe_blocks(n) ;
   bool *single_bools = new bool[n] ;
   block *ohe = new block[num_blocks] ;
 
   // Initialize
   prg.random_bool(single_bools, n) ;
-  for (int i = 0 ; i < num_blocks ; i++)
-    ohe[i] = zero_block ;
+  initialize_blocks(ohe, num_blocks) ;
 
   // Handle base case
   if (n == 1) {
@@ -233,8 +232,7 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
   block *hot = new block[num_blocks] ;
 
   // Initialize
-  for (int i = 0 ; i < num_blocks ; i++)
-    hot[i] = zero_block ;
+  initialize_blocks(hot, num_blocks) ;
   if (party == ALICE)
     SET_BIT(hot, 0) ;
 
@@ -329,7 +327,7 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
     int index_restore = index ;
     for (int i = 0 ; i < small_flat_bits ; i++, index++) {
       bool the_bool = test_bit(r0[index-n-1], 0) ^ test_bit(r1[index-n-1], 0) ;
-      the_bool = the_bool ^ test_bit(hot[remaining_gmt[index]/128], remaining_gmt[index]%128) ;
+      the_bool = the_bool ^ TEST_BIT(hot, remaining_gmt[index]) ;
       if (the_bool)
         SET_BIT(msgs, i) ;
       msg_bits[i] = single_bools[singleton_gmt[index]] ^ b[index-n-1] ;
@@ -362,8 +360,8 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
     for (int i = 0 ; i < small_flat_bits ; i++, index++) {
       bool the_bool = test_bit(rcv_ot[index-n-1], 0) ;
       if (single_bools[singleton_gmt[index]]) {
-        the_bool = the_bool ^ test_bit(rcv_msgs[i/128], i%128) ;
-        the_bool = the_bool ^ test_bit(hot[remaining_gmt[index]/128], remaining_gmt[index]%128) ;
+        the_bool = the_bool ^ TEST_BIT(rcv_msgs, i) ;
+        the_bool = the_bool ^ TEST_BIT(hot, remaining_gmt[index]) ;
       }
       if (rcv_bits[i])
         the_bool = the_bool ^ test_bit(r1[index-n-1], 0) ;
@@ -386,9 +384,9 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
   
   copyBits(ohe+(ohe_size-1)/128, (ohe_size-1)%128, hot+(ohe_size-1)/128, (ohe_size-1)%128, 1) ;
   for (int i = 0 ; i < conv_left.size() ; i++) {
-    bool the_bool = test_bit(ohe[conv_right1[i]/128], conv_right1[i]%128) ;
+    bool the_bool = TEST_BIT(ohe, conv_right1[i]) ;
     for (int j = 0 ; j < conv_right2[i].size() ; j++)
-      the_bool = the_bool ^ test_bit(hot[conv_right2[i][j]/128], conv_right2[i][j]%128) ;
+      the_bool = the_bool ^ TEST_BIT(hot, conv_right2[i][j]) ;
     if (the_bool)
       SET_BIT(ohe, conv_left[i]) ;
   }
@@ -406,7 +404,7 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
 
   // Declare
   PRG prg ;
-  int num_blocks = n_to_blocks(n) ;
+  int num_blocks = get_ohe_blocks(n) ;
   bool *first_bools = new bool[batch_size] ;
   block **ohes = new block*[batch_size] ;
 
@@ -414,8 +412,7 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   prg.random_bool(first_bools, batch_size) ;
   for (int b = 0 ; b < batch_size ; b++) {
     ohes[b] = new block[num_blocks] ;
-    for (int i = 0 ; i < num_blocks ; i++) 
-      ohes[b][i] = zero_block ;
+    initialize_blocks(ohes[b], num_blocks) ;
 
     if (party == ALICE)
       SET_BIT(ohes[b], first_bools[b] ? 1 : 0) ;
@@ -465,7 +462,7 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   /************************* Correct Random OTs *************************/
 
   // Declare intermediate variables
-  int largest_block = n_to_blocks(n-1) ;
+  int largest_block = get_ohe_blocks(n-1) ;
   int largest_flat_blocks = ((1 << (n-1)) * batch_size)/128 ;
   block *corr_flat_send = new block[largest_flat_blocks] ; 
   block *corr_flat_rcv = new block[largest_flat_blocks] ; 
@@ -489,7 +486,7 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
     // cout << "Round " << r << " - \n" ;
     // Initialize
     int comm_bits = 1 << (r-1) ;
-    int small_blocks = n_to_blocks(r-1) ;
+    int small_blocks = get_ohe_blocks(r-1) ;
     int flat_bytes = (comm_bits*batch_size)/8 ;      
     int flat_blocks = flat_bytes/16 ;
     initialize_blocks(corr_flat_send, flat_blocks) ;
@@ -606,15 +603,14 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
 
   // Declare
   PRG prg ;
-  int num_blocks = n_to_blocks(n) ;
+  int num_blocks = get_ohe_blocks(n) ;
   block **ohes = new block*[batch_size] ;
   bool **single_bools = new bool*[batch_size] ;
 
   // Initialize
   for (int b = 0 ; b < batch_size ; b++) {
     ohes[b] = new block[num_blocks] ;
-    for (int i = 0 ; i < num_blocks ; i++)
-      ohes[b][i] = zero_block ;
+    initialize_blocks(ohes[b], num_blocks) ;
     single_bools[b] = new bool[n] ;
     prg.random_bool(single_bools[b], n) ;
   }
@@ -653,8 +649,7 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   // Initialize
   for (int b = 0 ; b < batch_size ; b++) {
     hots[b] = new block[num_blocks] ;
-    for (int i = 0 ; i < num_blocks ; i++)
-      hots[b][i] = zero_block ;
+    initialize_blocks(hots[b], num_blocks) ;
     if (party == ALICE)
       SET_BIT(hots[b], 0) ;
   }    
@@ -748,7 +743,7 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
     for (int b = 0 ; b < batch_size ; b++) {
       for (int i = 0 ; i < small_flat_bits ; i++, index++) {
         bool the_bool = test_bit(r0s[b*num_ots+index-n-1], 0) ^ test_bit(r1s[b*num_ots+index-n-1], 0) ;
-        the_bool = the_bool ^ test_bit(hots[b][remaining_gmt[index]/128], remaining_gmt[index]%128) ;
+        the_bool = the_bool ^ TEST_BIT(hots[b], remaining_gmt[index]) ;
         if (the_bool)
           SET_BIT(msgs, b*small_flat_bits + i) ;
         msg_bits[b*small_flat_bits+i] = single_bools[b][singleton_gmt[index]] ^ bs[b*num_ots+index-n-1] ;
@@ -784,8 +779,8 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
       for (int i = 0 ; i < small_flat_bits ; i++, index++) {
         bool the_bool = test_bit(rcv_ots[b*num_ots+index-n-1], 0) ;
         if (single_bools[b][singleton_gmt[index]]) {
-          the_bool = the_bool ^ test_bit(rcv_msgs[(b*small_flat_bits+i)/128], (b*small_flat_bits+i)%128) ;
-          the_bool = the_bool ^ test_bit(hots[b][remaining_gmt[index]/128], remaining_gmt[index]%128) ;
+          the_bool = the_bool ^ TEST_BIT(rcv_msgs, b*small_flat_bits+i) ;
+          the_bool = the_bool ^ TEST_BIT(hots[b], remaining_gmt[index]) ;
         }
         if (rcv_bits[b*small_flat_bits+i])
           the_bool = the_bool ^ test_bit(r1s[b*num_ots+index-n-1], 0) ;
@@ -810,9 +805,9 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   for (int b = 0 ; b < batch_size ; b++) {
     copyBits(ohes[b]+(ohe_size-1)/128, (ohe_size-1)%128, hots[b]+(ohe_size-1)/128, (ohe_size-1)%128, 1) ;
     for (int i = 0 ; i < conv_left.size() ; i++) {
-      bool the_bool = test_bit(ohes[b][conv_right1[i]/128], conv_right1[i]%128) ;
+      bool the_bool = TEST_BIT(ohes[b], conv_right1[i]) ;
       for (int j = 0 ; j < conv_right2[i].size() ; j++)
-        the_bool = the_bool ^ test_bit(hots[b][conv_right2[i][j]/128], conv_right2[i][j]%128) ;
+        the_bool = the_bool ^ TEST_BIT(hots[b], conv_right2[i][j]) ;
       if (the_bool)
         SET_BIT(ohes[b], conv_left[i]) ;
     }
