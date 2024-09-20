@@ -144,7 +144,9 @@ void test4(int argc, char **argv) {
   delete[] res ;
 }
 
-block* reconst(int party, COT<NetIO> *ot1, COT<NetIO> *ot2, int bits, block *share) {
+/************************* OHE evaluation *************************/
+
+void reconst(int party, COT<NetIO> *ot1, COT<NetIO> *ot2, int bits, block *share, block *rec) {
   int n_bytes = (bits+7)/8 ;
   block *rcv_share = new block[1] ;
   initialize_blocks(rcv_share, 1) ;
@@ -158,18 +160,13 @@ block* reconst(int party, COT<NetIO> *ot1, COT<NetIO> *ot2, int bits, block *sha
   ot1->io->flush() ;
   ot2->io->flush() ;
 
-  xorBlocks_arr(rcv_share, share, 1) ;
-  return rcv_share ;
+  xorBlocks_arr(rec, rcv_share, share, 1) ;
+  delete[] rcv_share ;
 }
 
-block* get_ohe_from_plain(int n, block *inp) {
-  int num_blocks = get_ohe_blocks(n) ;
-  block *ohe = new block[num_blocks] ;
+void get_ohe_from_plain(block *inp, block *ohe) {
   uint64_t *data = (uint64_t*)inp ;
-  initialize_blocks(ohe, num_blocks) ;
-
   SET_BIT(ohe, data[0]) ;
-  return ohe ;
 }
 
 // Single OHE evaluation
@@ -210,14 +207,26 @@ void test5(int argc, char **argv) {
     exit(EXIT_FAILURE) ;
   }
 
-  // Initializing data
+  // Initializing stuff
   PRG prg ;
+  int num_blocks = get_ohe_blocks(n) ;
+  int m_blocks = (m+127)/128 ;
   block *inp_share = new block[1] ;
   prg.random_block(inp_share, 1) ; 
   block input_mask = zero_block ;
   for (int i = 0 ; i < n ; i++)
     input_mask = set_bit(input_mask, i) ;
   andBlocks_arr(inp_share, input_mask, 1) ;
+  LUT func ;
+  if (lut_name == "id") {
+    if (m != n) {
+      cerr << "Identity function needs n = m\n" ;
+      exit(EXIT_FAILURE) ;
+    }
+    func = identity(n) ;
+  }
+  else 
+    func = input_lut(n, m, "../../luts/" + lut_name + ".lut") ;
   
   // Get OHE
   block *ohe ;
@@ -235,40 +244,48 @@ void test5(int argc, char **argv) {
   // f(identity) * H(a) = a
   LUT id = identity(n) ;
   block *alpha = eval_lut(n, id, ohe) ; 
+  cout << "Step 1 done\n" ;
 
   // Compute x+a
   block *masked_inp = new block[1] ;
   xorBlocks_arr(masked_inp, inp_share, alpha, 1) ;
+  cout << "Step 2 done\n" ;
 
   // Send and receive shares of (x+a)
-  block *reconst_masked_inp = reconst(party, ot1, ot2, n, masked_inp) ;
+  block *reconst_masked_inp = new block[1] ; initialize_blocks(reconst_masked_inp, 1) ;
+  reconst(party, ot1, ot2, n, masked_inp, reconst_masked_inp) ;
+  cout << "Step 3 done\n" ;
 
   // Rotate H(a) by (x+a) to get H(x)
   uint64_t *data = (uint64_t*)reconst_masked_inp ;
   uint64_t rot = data[0] ;
   block *ohe_rot = rotate(n, ohe, rot) ;
+  cout << "Step 4 done\n" ;
 
   // f(T) * H(x) = f(t)
-  LUT func ;
-  if (lut_name == "id") {
-    if (m != n) {
-      cerr << "Identity function needs n = m\n" ;
-      exit(EXIT_FAILURE) ;
-    }
-    func = identity(n) ;
-  }
-  else 
-    func = input_lut(n, m, "../../luts/" + lut_name + ".lut") ;
+  cout << "m_blocks = " << m_blocks << "\n" ;
   block *otp_share = eval_lut(n, func, ohe_rot) ;
+  cout << "Step 5 done\n" ;
 
   // Send and receive f(t)
-  block *reconst_otp = reconst(party, ot1, ot2, m, otp_share) ;
+  block *reconst_otp = new block[m_blocks] ; initialize_blocks(reconst_otp, m_blocks) ;
+  reconst(party, ot1, ot2, m, otp_share, reconst_otp) ;
+  cout << "Step 6 done\n" ;
 
   // Check validity
-  block *reconst_inp = reconst(party, ot1, ot2, n, inp_share) ;
-  block *reconst_inp_ohe = get_ohe_from_plain(n, reconst_inp) ;
+  block *reconst_inp = new block[1] ; initialize_blocks(reconst_inp, 1) ;
+  reconst(party, ot1, ot2, n, inp_share, reconst_inp) ;
+  block *reconst_inp_ohe = new block[num_blocks] ; initialize_blocks(reconst_inp_ohe, num_blocks) ;
+  get_ohe_from_plain(reconst_inp, reconst_inp_ohe) ;
   block *inp_eval = eval_lut(n, func, reconst_inp_ohe) ;
-  if (check_equal(inp_eval, reconst_otp)) 
+  bool flag = true ;
+  for (int i = 0 ; i < m_blocks ; i++) {
+    if (!check_equal(inp_eval+i, reconst_otp+i)) {
+      flag = false ;
+      break ;
+    }
+  }
+  if (flag) 
     cout << "\033[1;32m" << "Passed" << "\033[0m\n" ;
   else
     cout << "\033[1;31m" << "Failed" << "\033[0m\n" ;
@@ -336,11 +353,11 @@ void test6(int argc, char **argv) {
   andBlocks_arr(inp_share, input_mask, batch_size) ;
   
   // Get OHE
-  block **ohe ;
+  block **ohes ;
   if (prot_type == "ohe")
-    ohe = batched_random_ohe(party, n, batch_size, ot1, ot2) ;
+    ohes = batched_random_ohe(party, n, batch_size, ot1, ot2) ;
   else if (prot_type == "gmt")
-    ohe = batched_random_gmt(party, n, batch_size, ot1, ot2) ;
+    ohes = batched_random_gmt(party, n, batch_size, ot1, ot2) ;
   else {
     cerr << "Incorrect protocol type\n" ;
     exit(EXIT_FAILURE) ;
@@ -350,9 +367,9 @@ void test6(int argc, char **argv) {
 
   // f(identity) * H(a) = a
   LUT id = identity(n) ;
-  block **alpha = new block*[batch_size] ;
-  for (int b = 0 ; b < batch_size ; b++)
-    alpha[b] = eval_lut(n, id, ohe[b]) ;
+  block *alpha = new block[batch_size] ;
+  // for (int b = 0 ; b < batch_size ; b++)
+  //   alpha+b = eval_lut(n, id, ohes[b]) ;
 
   // // Compute x+a
   // block *masked_inp = new block[batch_size] ;
