@@ -82,17 +82,11 @@ LUT input_lut(int n, int m, string lut_path) {
   return lut ;
 }
 
-block* rotate(int n, block *hot, uint64_t rot) {
+void rotate(int n, block *vec, uint64_t rot, block *vec_rotated) {
   uint64_t N = 1ULL << n ;
-  int num_blocks = get_ohe_blocks(n) ;
-  block *res = new block[num_blocks] ;
-  initialize_blocks(res, num_blocks) ;
-
   for (uint64_t i = 0 ; i < N ; i++)
-    if (TEST_BIT(hot, i))
-      SET_BIT(res, i^rot) ;
-
-  return res ;
+    if (TEST_BIT(vec, i))
+      SET_BIT(vec_rotated, i^rot) ;
 }
 
 block* eval_lut(int n, LUT &lut, block *vec) {

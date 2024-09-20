@@ -77,7 +77,7 @@ LUT identity(int n) ;
 LUT input_lut(int n, int m, string lut_path) ;
 
 // Rotate H(a) by (x+a)
-block* rotate(int n, block *hot, uint64_t rot) ;
+void rotate(int n, block *vec, uint64_t rot, block *vec_rotated) ;
 
 // Multiply with truth table
 block* eval_lut(int n, LUT &lut, block *vec) ;

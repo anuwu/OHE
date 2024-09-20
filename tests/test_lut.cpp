@@ -82,7 +82,8 @@ void test3(int argc, char **argv) {
   SET_BIT(hot, hot_index) ;
 
   // Obtain rotated vector
-  block *hot_rotated = rotate(n, hot, rotation) ;
+  block *hot_rotated = new block[num_blocks] ;
+  rotate(n, hot, rotation, hot_rotated) ;
 
   // Verify
   cout << "hot_index = " << hot_index << "\n" ;
@@ -256,7 +257,8 @@ void test5(int argc, char **argv) {
   // Rotate H(a) by (x+a) to get H(x)
   uint64_t *data = (uint64_t*)reconst_masked_inp ;
   uint64_t rot = data[0] ;
-  block *ohe_rot = rotate(n, ohe, rot) ;
+  block *ohe_rot = new block[num_blocks] ;
+  rotate(n, ohe, rot, ohe_rot) ;
 
   // f(T) * H(x) = f(t)
   block *otp_share = eval_lut(n, func, ohe_rot) ;
