@@ -89,7 +89,7 @@ void rotate(int n, block *vec, uint64_t rot, block *vec_rotated) {
       SET_BIT(vec_rotated, i^rot) ;
 }
 
-block* eval_lut(int n, LUT &lut, block *vec) {
+void eval_lut(int n, LUT &lut, block *vec, block *output) {
   if (n != lut.n) {
     cerr << "Incompatible size of OHE (" << n << ") and LUT input size (" << lut.n << ")\n" ;
     exit(EXIT_FAILURE) ;
@@ -100,8 +100,6 @@ block* eval_lut(int n, LUT &lut, block *vec) {
   int m = lut.m ;
   int m_blocks = (m+127)/128 ;
   int m_rem = m % 128 ;
-  block *res = new block[m_blocks] ;
-  initialize_blocks(res, m_blocks) ;
   block one_rest = zero_block ;
   for (int i = 0 ; i < m_rem ; i++)
     one_rest = set_bit(one_rest, i) ;
@@ -125,11 +123,10 @@ block* eval_lut(int n, LUT &lut, block *vec) {
 
     // XOR accumulate into res
     andBlocks_arr(tmp, vec_t, lut.table[i], m_blocks) ;
-    xorBlocks_arr(res, tmp, m_blocks) ;
+    xorBlocks_arr(output, tmp, m_blocks) ;
   }
 
   // Delete and return
   delete[] tmp ;
   delete[] vec_t ;
-  return res ;
 }

@@ -80,7 +80,7 @@ LUT input_lut(int n, int m, string lut_path) ;
 void rotate(int n, block *vec, uint64_t rot, block *vec_rotated) ;
 
 // Multiply with truth table
-block* eval_lut(int n, LUT &lut, block *vec) ;
+void eval_lut(int n, LUT &lut, block *vec, block *output) ;
 
 // Send and receive shares of output => Need batching
 

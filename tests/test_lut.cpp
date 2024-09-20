@@ -82,7 +82,7 @@ void test3(int argc, char **argv) {
   SET_BIT(hot, hot_index) ;
 
   // Obtain rotated vector
-  block *hot_rotated = new block[num_blocks] ;
+  block *hot_rotated = new block[num_blocks] ; initialize_blocks(hot_rotated, num_blocks) ;
   rotate(n, hot, rotation, hot_rotated) ;
 
   // Verify
@@ -132,7 +132,8 @@ void test4(int argc, char **argv) {
   SET_BIT(hot, hot_index) ;
 
   LUT lut = identity(n) ;
-  block *res = eval_lut(n, lut, hot) ;
+  block *res = new block[1] ; initialize_blocks(res, 1) ;
+  eval_lut(n, lut, hot, res) ;
   uint64_t recovered_index = 0 ;
   for (int i = 0 ; i < n ; i++)
     if (TEST_BIT(res, i))
@@ -244,7 +245,8 @@ void test5(int argc, char **argv) {
 
   // f(identity) * H(a) = a
   LUT id = identity(n) ;
-  block *alpha = eval_lut(n, id, ohe) ; 
+  block *alpha = new block[1] ; initialize_blocks(alpha, 1) ;
+  eval_lut(n, id, ohe, alpha) ; 
 
   // Compute x+a
   block *masked_inp = new block[1] ;
@@ -257,11 +259,12 @@ void test5(int argc, char **argv) {
   // Rotate H(a) by (x+a) to get H(x)
   uint64_t *data = (uint64_t*)reconst_masked_inp ;
   uint64_t rot = data[0] ;
-  block *ohe_rot = new block[num_blocks] ;
+  block *ohe_rot = new block[num_blocks] ; initialize_blocks(ohe_rot, num_blocks) ;
   rotate(n, ohe, rot, ohe_rot) ;
 
   // f(T) * H(x) = f(t)
-  block *otp_share = eval_lut(n, func, ohe_rot) ;
+  block *otp_share = new block[m_blocks] ; initialize_blocks(otp_share, m_blocks) ;
+  eval_lut(n, func, ohe_rot, otp_share) ;
 
   // Send and receive f(t)
   block *reconst_otp = new block[m_blocks] ; initialize_blocks(reconst_otp, m_blocks) ;
@@ -272,10 +275,11 @@ void test5(int argc, char **argv) {
   reconst(party, ot1, ot2, n, inp_share, reconst_inp) ;
   block *reconst_inp_ohe = new block[num_blocks] ; initialize_blocks(reconst_inp_ohe, num_blocks) ;
   get_ohe_from_plain(reconst_inp, reconst_inp_ohe) ;
-  block *inp_eval = eval_lut(n, func, reconst_inp_ohe) ;
+  block *clear_otp = new block[m_blocks] ; initialize_blocks(clear_otp, m_blocks) ;
+  eval_lut(n, func, reconst_inp_ohe, clear_otp) ;
   bool flag = true ;
   for (int i = 0 ; i < m_blocks ; i++) {
-    if (!check_equal(inp_eval+i, reconst_otp+i)) {
+    if (!check_equal(clear_otp+i, reconst_otp+i)) {
       flag = false ;
       break ;
     }
@@ -296,7 +300,7 @@ void test5(int argc, char **argv) {
   delete[] reconst_otp ;
   delete[] reconst_inp ;
   delete[] reconst_inp_ohe ;
-  delete[] inp_eval ; 
+  delete[] clear_otp ; 
 }
 
 // Batched OHE evaluation
