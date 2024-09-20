@@ -6,8 +6,6 @@
 using namespace std ;
 using namespace emp ;
 
-block* reconst_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *ohe, bool print=false) ;
-
 block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print_comm=false) ;
 
 block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print_comm=false) ;

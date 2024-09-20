@@ -73,8 +73,12 @@ int main(int argc, char** argv) {
     auto start_exp = clock_start(); 
     if (prot_type == "ohe")
       ohes = batched_random_ohe(party, n, batch_size, ot1, ot2, true) ;
-    else
+    else if (prot_type == "gmt")
       ohes = batched_random_gmt(party, n, batch_size, ot1, ot2, true) ;
+    else {
+      cerr << "Incorrect OT type\n" ;
+      exit(EXIT_FAILURE) ;
+    }
     long long t_exp = time_from(start_exp);  
     comm_var = io->counter - comm_var ;
 
@@ -120,8 +124,12 @@ int main(int argc, char** argv) {
     for (int i = 0 ; i < reps ; i++) {
       if (prot_type == "ohe")
         ohe = random_ohe(party, n, ot1, ot2, true) ;
-      else
+      else if (prot_type == "gmt")
         ohe = random_gmt(party, n, ot1, ot2, true) ;
+      else {
+        cerr << "Incorrect protocol type\n" ;
+        exit(EXIT_FAILURE) ;
+      }
     }
     long long t_exp = time_from(start_exp);    
     setprecision(5) ;

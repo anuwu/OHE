@@ -1,3 +1,4 @@
+#include "ohe.h"
 #include "lut.h"
 #include <time.h>
 #include <iostream>
@@ -143,35 +144,265 @@ void test4(int argc, char **argv) {
   delete[] res ;
 }
 
+block* reconst(int party, COT<NetIO> *ot1, COT<NetIO> *ot2, int bits, block *share) {
+  int n_bytes = (bits+7)/8 ;
+  block *rcv_share = new block[1] ;
+  initialize_blocks(rcv_share, 1) ;
+  if (party == ALICE) {
+    ot1->io->send_data(share, n_bytes) ;
+    ot2->io->recv_data(rcv_share, n_bytes) ;
+  } else {
+    ot1->io->recv_data(rcv_share, n_bytes) ;
+    ot2->io->send_data(share, n_bytes) ;
+  }
+  ot1->io->flush() ;
+  ot2->io->flush() ;
+
+  xorBlocks_arr(rcv_share, share, 1) ;
+  return rcv_share ;
+}
+
+block* get_ohe_from_plain(int n, block *inp) {
+  int num_blocks = get_ohe_blocks(n) ;
+  block *ohe = new block[num_blocks] ;
+  uint64_t *data = (uint64_t*)inp ;
+  initialize_blocks(ohe, num_blocks) ;
+
+  SET_BIT(ohe, data[0]) ;
+  return ohe ;
+}
+
 // Single OHE evaluation
 void test5(int argc, char **argv) {
-  // f(identity) * H(a) = a
-  // Compute x+a
-  // Send and receive (x+a)
-  // Rotate H(a) by (x+a) to get H(x)
-  // f(T) * H(x) = f(t)
-  // Send and receive f(t)
-
   // Abort message
   const auto abort = [&] {
     cerr
       << "usage: "
       << argv[0]
-      << " 5 <n>\n";
+      << " 5 <party> <port> <n> <m> <iknp/ferret> <ohe/gmt> <lut_name>\n";
     exit(EXIT_FAILURE);
   } ;
-  if (argc != 3)
+  if (argc != 9)
     abort() ;
+
+  // Read arguments
+  int party = atoi(argv[2]) ;
+  int port = atoi(argv[3]) ;
+  int n = atoi(argv[4]) ;
+  int m = atoi(argv[5]) ;
+  string ot_type = argv[6] ;
+  string prot_type = argv[7] ;
+  string lut_name = argv[8] ;
+
+  // Initializing network stuff
+  NetIO *io = new NetIO(party == ALICE ? nullptr : "127.0.0.1", port, true) ;
+  COT<NetIO> *ot1, *ot2 ;
+  if (ot_type == "iknp") {
+    ot1 = new IKNP<NetIO>(io) ;
+    ot2 = new IKNP<NetIO>(io) ;
+  } 
+  else if (ot_type == "ferret") {
+    ot1 = new FerretCOT<NetIO>(party, 1, &io) ;
+    ot2 = new FerretCOT<NetIO>(party == 1 ? 2 : 1, 1, &io) ;
+  }
+  else {
+    cout << "Incorrect OT type\n" ;
+    exit(EXIT_FAILURE) ;
+  }
+
+  // Initializing data
+  PRG prg ;
+  block *inp_share = new block[1] ;
+  prg.random_block(inp_share, 1) ; 
+  block input_mask = zero_block ;
+  for (int i = 0 ; i < n ; i++)
+    input_mask = set_bit(input_mask, i) ;
+  andBlocks_arr(inp_share, input_mask, 1) ;
+  
+  // Get OHE
+  block *ohe ;
+  if (prot_type == "ohe")
+    ohe = random_ohe(party, n, ot1, ot2) ;
+  else if (prot_type == "gmt")
+    ohe = random_gmt(party, n, ot1, ot2) ;
+  else {
+    cerr << "Incorrect protocol type\n" ;
+    exit(EXIT_FAILURE) ;
+  }
+
+  /************************* Main protocol *************************/
+
+  // f(identity) * H(a) = a
+  LUT id = identity(n) ;
+  block *alpha = eval_lut(n, id, ohe) ; 
+
+  // Compute x+a
+  block *masked_inp = new block[1] ;
+  xorBlocks_arr(masked_inp, inp_share, alpha, 1) ;
+
+  // Send and receive shares of (x+a)
+  block *reconst_masked_inp = reconst(party, ot1, ot2, n, masked_inp) ;
+
+  // Rotate H(a) by (x+a) to get H(x)
+  uint64_t *data = (uint64_t*)reconst_masked_inp ;
+  uint64_t rot = data[0] ;
+  block *ohe_rot = rotate(n, ohe, rot) ;
+
+  // f(T) * H(x) = f(t)
+  LUT func ;
+  if (lut_name == "id") {
+    if (m != n) {
+      cerr << "Identity function needs n = m\n" ;
+      exit(EXIT_FAILURE) ;
+    }
+    func = identity(n) ;
+  }
+  else 
+    func = input_lut(n, m, "../../luts/" + lut_name + ".lut") ;
+  block *otp_share = eval_lut(n, func, ohe_rot) ;
+
+  // Send and receive f(t)
+  block *reconst_otp = reconst(party, ot1, ot2, m, otp_share) ;
+
+  // Check validity
+  block *reconst_inp = reconst(party, ot1, ot2, n, inp_share) ;
+  block *reconst_inp_ohe = get_ohe_from_plain(n, reconst_inp) ;
+  block *inp_eval = eval_lut(n, func, reconst_inp_ohe) ;
+  if (check_equal(inp_eval, reconst_otp)) 
+    cout << "\033[1;32m" << "Passed" << "\033[0m\n" ;
+  else
+    cout << "\033[1;31m" << "Failed" << "\033[0m\n" ;
+
+  // Delete stuff
+  delete[] inp_share ; 
+  delete[] ohe ;
+  delete[] alpha ;
+  delete[] masked_inp ;
+  delete[] reconst_masked_inp ;
+  delete[] ohe_rot ;
+  delete[] otp_share ;
+  delete[] reconst_otp ;
+  delete[] reconst_inp ;
+  delete[] reconst_inp_ohe ;
+  delete[] inp_eval ; 
 }
 
 // Batched OHE evaluation
-void test6() {
+void test6(int argc, char **argv) {
+  // Abort message
+  const auto abort = [&] {
+    cerr
+      << "usage: "
+      << argv[0]
+      << " 6 <party> <port> <n> <m> <batch_size> <iknp/ferret> <ohe/gmt> <lut_name>\n";
+    exit(EXIT_FAILURE);
+  } ;
+  if (argc != 10)
+    abort() ;
+
+  // Read arguments
+  int party = atoi(argv[2]) ;
+  int port = atoi(argv[3]) ;
+  int n = atoi(argv[4]) ;
+  int m = atoi(argv[5]) ;
+  int batch_size = atoi(argv[6]) ;
+  string ot_type = argv[7] ;
+  string prot_type = argv[8] ;
+  string lut_name = argv[9] ;
+
+  // Initializing network stuff
+  NetIO *io = new NetIO(party == ALICE ? nullptr : "127.0.0.1", port, true) ;
+  COT<NetIO> *ot1, *ot2 ;
+  if (ot_type == "iknp") {
+    ot1 = new IKNP<NetIO>(io) ;
+    ot2 = new IKNP<NetIO>(io) ;
+  } 
+  else if (ot_type == "ferret") {
+    ot1 = new FerretCOT<NetIO>(party, 1, &io) ;
+    ot2 = new FerretCOT<NetIO>(party == 1 ? 2 : 1, 1, &io) ;
+  }
+  else {
+    cout << "Incorrect OT type\n" ;
+    exit(EXIT_FAILURE) ;
+  }
+
+  // Initializing data
+  PRG prg ;
+  block *inp_share = new block[batch_size] ;
+  prg.random_block(inp_share, batch_size) ; 
+  block input_mask = zero_block ;
+  for (int i = 0 ; i < n ; i++)
+    input_mask = set_bit(input_mask, i) ;
+  andBlocks_arr(inp_share, input_mask, batch_size) ;
+  
+  // Get OHE
+  block **ohe ;
+  if (prot_type == "ohe")
+    ohe = batched_random_ohe(party, n, batch_size, ot1, ot2) ;
+  else if (prot_type == "gmt")
+    ohe = batched_random_gmt(party, n, batch_size, ot1, ot2) ;
+  else {
+    cerr << "Incorrect protocol type\n" ;
+    exit(EXIT_FAILURE) ;
+  }
+
+  /************************* Main protocol *************************/
+
   // f(identity) * H(a) = a
-  // Compute x+a
-  // Send and receive (x+a) => Need batching
-  // Rotate H(a) by (x+a) to get H(x)
-  // f(T) * H(x) = f(t)
-  // Send and receive f(t) => Need batching
+  LUT id = identity(n) ;
+  block **alpha = new block*[batch_size] ;
+  for (int b = 0 ; b < batch_size ; b++)
+    alpha[b] = eval_lut(n, id, ohe[b]) ;
+
+  // // Compute x+a
+  // block *masked_inp = new block[batch_size] ;
+  // xorBlocks_arr(masked_inp, inp_share, alpha, 1) ;
+
+  // // Send and receive shares of (x+a)
+  // block *reconst_masked_inp = reconst(party, ot1, ot2, n, masked_inp) ;
+
+  // // Rotate H(a) by (x+a) to get H(x)
+  // uint64_t *data = (uint64_t*)reconst_masked_inp ;
+  // uint64_t rot = data[0] ;
+  // block *ohe_rot = rotate(n, ohe, rot) ;
+
+  // // f(T) * H(x) = f(t)
+  // LUT func ;
+  // if (lut_name == "id") {
+  //   if (m != n) {
+  //     cerr << "Identity function needs n = m\n" ;
+  //     exit(EXIT_FAILURE) ;
+  //   }
+  //   func = identity(n) ;
+  // }
+  // else 
+  //   func = input_lut(n, m, "../../luts/" + lut_name + ".lut") ;
+  // block *otp_share = eval_lut(n, func, ohe_rot) ;
+
+  // // Send and receive f(t)
+  // block *reconst_otp = reconst(party, ot1, ot2, m, otp_share) ;
+
+  // // Check validity
+  // block *reconst_inp = reconst(party, ot1, ot2, n, inp_share) ;
+  // block *reconst_inp_ohe = get_ohe_from_plain(n, reconst_inp) ;
+  // block *inp_eval = eval_lut(n, func, reconst_inp_ohe) ;
+  // if (check_equal(inp_eval, reconst_otp)) 
+  //   cout << "\033[1;32m" << "Passed" << "\033[0m\n" ;
+  // else
+  //   cout << "\033[1;31m" << "Failed" << "\033[0m\n" ;
+
+  // // Delete stuff
+  // delete[] inp_share ; 
+  // delete[] ohe ;
+  // delete[] alpha ;
+  // delete[] masked_inp ;
+  // delete[] reconst_masked_inp ;
+  // delete[] ohe_rot ;
+  // delete[] otp_share ;
+  // delete[] reconst_otp ;
+  // delete[] reconst_inp ;
+  // delete[] reconst_inp_ohe ;
+  // delete[] inp_eval ; 
 }
 
 int main(int argc, char** argv) {
@@ -201,6 +432,11 @@ int main(int argc, char** argv) {
   // test evaluation
   case 4 :
     test4(argc, argv) ;
+    break ;
+  
+  // single ohe evaluation
+  case 5 :
+    test5(argc, argv) ;
     break ;
 
   default :

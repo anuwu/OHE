@@ -16,6 +16,10 @@ public :
   int m, m_blocks ;
   block **table ;
 
+  LUT() { 
+    table = NULL ;
+  }
+
   LUT(int n, int m) {
     // Fill parameters
     this->n = n ;
@@ -51,7 +55,7 @@ LUT input_lut(int n, int m, string lut_path) ;
 block* rotate(int n, block *hot, uint64_t rot) ;
 
 // Multiply with truth table
-block* eval_lut(int n, LUT &lut, block *hot) ;
+block* eval_lut(int n, LUT &lut, block *vec) ;
 
 // Send and receive shares of output => Need batching
 

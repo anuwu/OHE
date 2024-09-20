@@ -82,7 +82,7 @@ LUT input_lut(int n, int m, string lut_path) {
   return lut ;
 }
 
-block* eval_lut(int n, LUT &lut, block *hot) {
+block* eval_lut(int n, LUT &lut, block *vec) {
   if (n != lut.n) {
     cerr << "Incompatible size of OHE (" << n << ") and LUT input size (" << lut.n << ")\n" ;
     exit(EXIT_FAILURE) ;
@@ -101,29 +101,29 @@ block* eval_lut(int n, LUT &lut, block *hot) {
 
   // Do the product
   block *tmp = new block[m_blocks] ;
-  block *hot_t = new block[m_blocks] ;
+  block *vec_t = new block[m_blocks] ;
   initialize_blocks(tmp, m_blocks) ;
   for (uint64_t i = 0 ; i < N ; i++) {
     // Replicate OHE at index i, m times
     block rep_block, rest_rep_block ;
-    if (TEST_BIT(hot, i)) {
+    if (TEST_BIT(vec, i)) {
       rep_block = all_one_block ;
       rest_rep_block = one_rest ;
     } else {
       rep_block = zero_block ;
       rest_rep_block = zero_block ;
     }
-    initialize_blocks(hot_t, m_blocks-1, rep_block) ;
-    hot_t[m_blocks-1] = rest_rep_block ;
+    initialize_blocks(vec_t, m_blocks-1, rep_block) ;
+    vec_t[m_blocks-1] = rest_rep_block ;
 
     // XOR accumulate into res
-    andBlocks_arr(tmp, hot_t, lut.table[i], m_blocks) ;
+    andBlocks_arr(tmp, vec_t, lut.table[i], m_blocks) ;
     xorBlocks_arr(res, tmp, m_blocks) ;
   }
 
   // Delete and return
   delete[] tmp ;
-  delete[] hot_t ;
+  delete[] vec_t ;
   return res ;
 }
 

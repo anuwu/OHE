@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
     std::cerr
       << "usage: "
       << argv[0]
-      << " <party-id> <port> <n> <repetitions> <iknp/ferret> <flute/ohe>\n";
+      << " <party> <port> <n> <repetitions> <iknp/ferret> <flute/ohe>\n";
     std::exit(EXIT_FAILURE);
   };
 
