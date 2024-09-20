@@ -30,10 +30,35 @@ public :
     // Allocate table
     this->table = new block*[lut_size] ;
     for (uint64_t i = 0 ; i < this->lut_size ; i++) {
-      this->table[i] = new block[m_blocks] ;
-      for (int j = 0 ; j < m_blocks ; j++)
+      this->table[i] = new block[this->m_blocks] ;
+      for (int j = 0 ; j < this->m_blocks ; j++)
         this->table[i][j] = zero_block ;
     }
+  }
+
+  LUT(const LUT &other) {
+    this->n = other.n ;
+    this->lut_size = other.lut_size ;
+    this->m = other.m ;
+    this->m_blocks = other.m_blocks ;
+    this->table = new block*[lut_size] ;
+    for (uint64_t i = 0 ; i < this->lut_size ; i++) {
+      this->table[i] = new block[this->m_blocks] ;
+      copyBlocks_arr(this->table[i], other.table[i], this->m_blocks) ;
+    }
+  }
+
+  LUT& operator=(const LUT &other) {
+    this->n = other.n ;
+    this->lut_size = other.lut_size ;
+    this->m = other.m ;
+    this->m_blocks = other.m_blocks ;
+    this->table = new block*[lut_size] ;
+    for (uint64_t i = 0 ; i < this->lut_size ; i++) {
+      this->table[i] = new block[this->m_blocks] ;
+      copyBlocks_arr(this->table[i], other.table[i], this->m_blocks) ;
+    }
+    return *this ;
   }
 
   friend ostream& operator<<(ostream &os, const LUT &tt) ;

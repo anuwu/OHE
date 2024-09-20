@@ -225,9 +225,9 @@ void test5(int argc, char **argv) {
     }
     func = identity(n) ;
   }
-  else 
+  else
     func = input_lut(n, m, "../../luts/" + lut_name + ".lut") ;
-  
+
   // Get OHE
   block *ohe ;
   if (prot_type == "ohe")
@@ -244,33 +244,26 @@ void test5(int argc, char **argv) {
   // f(identity) * H(a) = a
   LUT id = identity(n) ;
   block *alpha = eval_lut(n, id, ohe) ; 
-  cout << "Step 1 done\n" ;
 
   // Compute x+a
   block *masked_inp = new block[1] ;
   xorBlocks_arr(masked_inp, inp_share, alpha, 1) ;
-  cout << "Step 2 done\n" ;
 
   // Send and receive shares of (x+a)
   block *reconst_masked_inp = new block[1] ; initialize_blocks(reconst_masked_inp, 1) ;
   reconst(party, ot1, ot2, n, masked_inp, reconst_masked_inp) ;
-  cout << "Step 3 done\n" ;
 
   // Rotate H(a) by (x+a) to get H(x)
   uint64_t *data = (uint64_t*)reconst_masked_inp ;
   uint64_t rot = data[0] ;
   block *ohe_rot = rotate(n, ohe, rot) ;
-  cout << "Step 4 done\n" ;
 
   // f(T) * H(x) = f(t)
-  cout << "m_blocks = " << m_blocks << "\n" ;
   block *otp_share = eval_lut(n, func, ohe_rot) ;
-  cout << "Step 5 done\n" ;
 
   // Send and receive f(t)
   block *reconst_otp = new block[m_blocks] ; initialize_blocks(reconst_otp, m_blocks) ;
   reconst(party, ot1, ot2, m, otp_share, reconst_otp) ;
-  cout << "Step 6 done\n" ;
 
   // Check validity
   block *reconst_inp = new block[1] ; initialize_blocks(reconst_inp, 1) ;
