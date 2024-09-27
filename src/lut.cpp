@@ -108,6 +108,7 @@ void eval_lut(int n, LUT &lut, block *vec, block *output) {
   block *tmp = new block[m_blocks] ;
   block *vec_t = new block[m_blocks] ;
   initialize_blocks(tmp, m_blocks) ;
+  block *row = new block[1] ;
   for (uint64_t i = 0 ; i < N ; i++) {
     // Replicate OHE at index i, m times
     block rep_block, rest_rep_block ;
@@ -122,11 +123,13 @@ void eval_lut(int n, LUT &lut, block *vec, block *output) {
     vec_t[m_blocks-1] = rest_rep_block ;
 
     // XOR accumulate into res
-    andBlocks_arr(tmp, vec_t, lut.table[i], m_blocks) ;
+    row[0] = makeBlock(0ULL, i) ;
+    andBlocks_arr(tmp, vec_t, row, m_blocks) ;
     xorBlocks_arr(output, tmp, m_blocks) ;
   }
 
   // Delete and return
+  delete[] row ;
   delete[] tmp ;
   delete[] vec_t ;
 }
