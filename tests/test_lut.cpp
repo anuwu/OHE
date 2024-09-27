@@ -343,6 +343,8 @@ void test6(int argc, char **argv) {
   }
 
   // Initializing data
+  int num_blocks = get_ohe_blocks(n) ;
+  int m_blocks = (m+127)/128 ;
   PRG prg ;
   block *inp_share = new block[batch_size] ;
   prg.random_block(inp_share, batch_size) ; 
@@ -350,6 +352,16 @@ void test6(int argc, char **argv) {
   for (int i = 0 ; i < n ; i++)
     input_mask = set_bit(input_mask, i) ;
   andBlocks_arr(inp_share, input_mask, batch_size) ;
+  LUT func ;
+  if (lut_name == "id") {
+    if (m != n) {
+      cerr << "Identity function needs n = m\n" ;
+      exit(EXIT_FAILURE) ;
+    }
+    func = identity(n) ;
+  }
+  else
+    func = input_lut(n, m, "../../luts/" + lut_name + ".lut") ;
   
   // Get OHE
   block **ohes ;
@@ -364,61 +376,101 @@ void test6(int argc, char **argv) {
 
   /************************* Main protocol *************************/
 
+  auto start_exp = clock_start() ; 
+  uint64_t comm_var = io->counter ;
+
   // f(identity) * H(a) = a
   LUT id = identity(n) ;
-  block *alpha = new block[batch_size] ;
-  // for (int b = 0 ; b < batch_size ; b++)
-  //   alpha+b = eval_lut(n, id, ohes[b]) ;
+  block *alpha = new block[batch_size] ; initialize_blocks(alpha, batch_size) ;
+  for (int b = 0 ; b < batch_size ; b++)
+    eval_lut(n, id, ohes[b], alpha+b) ;
 
-  // // Compute x+a
-  // block *masked_inp = new block[batch_size] ;
-  // xorBlocks_arr(masked_inp, inp_share, alpha, 1) ;
+  // Compute x+a
+  block *masked_inp = new block[batch_size] ; initialize_blocks(masked_inp, batch_size) ;
+  xorBlocks_arr(masked_inp, inp_share, alpha, batch_size) ;
 
-  // // Send and receive shares of (x+a)
-  // block *reconst_masked_inp = reconst(party, ot1, ot2, n, masked_inp) ;
+  // Send and receive shares of (x+a)
+  block *reconst_masked_inp = new block[batch_size] ; initialize_blocks(reconst_masked_inp, batch_size) ;
+  for (int b = 0 ; b < batch_size ; b++)
+    reconst(party, ot1, ot2, n, masked_inp+b, reconst_masked_inp+b) ;
 
-  // // Rotate H(a) by (x+a) to get H(x)
-  // uint64_t *data = (uint64_t*)reconst_masked_inp ;
-  // uint64_t rot = data[0] ;
-  // block *ohe_rot = rotate(n, ohe, rot) ;
+  // Rotate H(a) by (x+a) to get H(x)
+  block **ohes_rot = new block*[batch_size] ; 
+  for (int b = 0 ; b < batch_size ; b++) {
+    uint64_t *data = (uint64_t*)(reconst_masked_inp+b) ;
+    uint64_t rot = data[0] ;
+    ohes_rot[b] = new block[num_blocks] ; initialize_blocks(ohes_rot[b], num_blocks) ;
+    rotate(n, ohes[b], rot, ohes_rot[b]) ;
+  }
 
-  // // f(T) * H(x) = f(t)
-  // LUT func ;
-  // if (lut_name == "id") {
-  //   if (m != n) {
-  //     cerr << "Identity function needs n = m\n" ;
-  //     exit(EXIT_FAILURE) ;
-  //   }
-  //   func = identity(n) ;
-  // }
-  // else 
-  //   func = input_lut(n, m, "../../luts/" + lut_name + ".lut") ;
-  // block *otp_share = eval_lut(n, func, ohe_rot) ;
+  // f(T) * H(x) = f(t)
+  block *otp_share = new block[batch_size] ; initialize_blocks(otp_share, batch_size) ;
+  for (int b = 0 ; b < batch_size ; b++)
+    eval_lut(n, func, ohes_rot[b], otp_share+b) ;
 
-  // // Send and receive f(t)
-  // block *reconst_otp = reconst(party, ot1, ot2, m, otp_share) ;
+  // Send and receive f(t)
+  block **reconst_otps = new block*[batch_size] ;
+  for (int b = 0 ; b < batch_size ; b++) {
+    reconst_otps[b] = new block[m_blocks] ;
+    reconst(party, ot1, ot2, m, otp_share+b, reconst_otps[b]) ;
+  }
 
-  // // Check validity
-  // block *reconst_inp = reconst(party, ot1, ot2, n, inp_share) ;
-  // block *reconst_inp_ohe = get_ohe_from_plain(n, reconst_inp) ;
-  // block *inp_eval = eval_lut(n, func, reconst_inp_ohe) ;
-  // if (check_equal(inp_eval, reconst_otp)) 
-  //   cout << "\033[1;32m" << "Passed" << "\033[0m\n" ;
-  // else
-  //   cout << "\033[1;31m" << "Failed" << "\033[0m\n" ;
+  long long t_exp = time_from(start_exp);  
+  comm_var = io->counter - comm_var ;
+  cout << "Comm : " << comm_var << " bytes\n" ;
+  cout << fixed << setprecision(5) << "Time taken : " << double(t_exp)/(1e3*batch_size) << " ms\n" ;
+    
+  // Check validity
+  block *reconst_inp = new block[batch_size] ; initialize_blocks(reconst_inp, batch_size) ;
+  block **reconst_inp_ohes = new block*[batch_size] ;
+  block **clear_otps = new block*[batch_size] ;
+  bool all_flag = true ;
+  int corr = 0 ;
+  for (int b = 0 ; b < batch_size ; b++) {
+    reconst(party, ot1, ot2, n, inp_share+b, reconst_inp+b) ;
+    reconst_inp_ohes[b] = new block[num_blocks] ; initialize_blocks(reconst_inp_ohes[b], num_blocks) ;
+    get_ohe_from_plain(reconst_inp+b, reconst_inp_ohes[b]) ;
+    clear_otps[b] = new block[m_blocks] ; initialize_blocks(clear_otps[b], m_blocks) ;
+    eval_lut(n, func, reconst_inp_ohes[b], clear_otps[b]) ;
 
-  // // Delete stuff
-  // delete[] inp_share ; 
-  // delete[] ohe ;
-  // delete[] alpha ;
-  // delete[] masked_inp ;
-  // delete[] reconst_masked_inp ;
-  // delete[] ohe_rot ;
-  // delete[] otp_share ;
-  // delete[] reconst_otp ;
-  // delete[] reconst_inp ;
-  // delete[] reconst_inp_ohe ;
-  // delete[] inp_eval ; 
+    bool flag_batch = true ; 
+    for (int m = 0 ; m < m_blocks ; m++) {
+      if (!check_equal(clear_otps[b]+m, reconst_otps[b]+m)) {
+        flag_batch = false ;
+        break ;
+      }
+    }
+
+    if (!flag_batch)
+      all_flag = false ;
+    else
+      corr++ ;
+  }
+  
+  if (all_flag) 
+    cout << "\033[1;32m" << "Passed" << "\033[0m\n" ;
+  else
+    cout << "\033[1;31m" << "Failed --> " << corr << "\033[0m\n" ;
+
+  // Delete stuff
+  for (int b = 0 ; b < batch_size ; b++) {
+    delete[] ohes[b] ;
+    delete[] ohes_rot[b] ;
+    delete[] reconst_otps[b] ;
+    delete[] reconst_inp_ohes[b] ;
+    delete[] clear_otps[b] ;
+  }
+  delete[] inp_share ;
+  delete[] ohes ;
+  delete[] alpha ;
+  delete[] masked_inp ;
+  delete[] reconst_masked_inp ;
+  delete[] ohes_rot ;
+  delete[] otp_share ;
+  delete[] reconst_otps ;
+  delete[] reconst_inp ;
+  delete[] reconst_inp_ohes ;
+  delete[] clear_otps ; 
 }
 
 int main(int argc, char** argv) {
@@ -453,6 +505,10 @@ int main(int argc, char** argv) {
   // single ohe evaluation
   case 5 :
     test5(argc, argv) ;
+    break ;
+
+  case 6 :
+    test6(argc, argv) ;
     break ;
 
   default :
