@@ -76,12 +76,13 @@ LUT identity(int n) ;
 // Read truth table
 LUT input_lut(int n, int m, string lut_path) ;
 
-// Rotate H(a) by (x+a)
-void rotate(int n, block *vec, uint64_t rot, block *vec_rotated) ;
-
 // Multiply with truth table
 void eval_lut(int n, LUT &lut, block *vec, block *output) ;
 
-// Send and receive shares of output => Need batching
+void eval_lut_with_rot(int n, LUT &lut, block *vec, uint64_t rot, block *output) ;
+
+// Secure eval
+
+// Secure batched eval
 
 #endif

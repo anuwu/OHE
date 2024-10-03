@@ -14,4 +14,6 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
 
 block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print_comm=false) ;
 
+void rotate(int n, block *vec, uint64_t rot, block *vec_rotated) ;
+
 #endif

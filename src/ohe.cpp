@@ -783,3 +783,10 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   
   return ohes ;
 }
+
+void rotate(int n, block *vec, uint64_t rot, block *vec_rotated) {
+  uint64_t N = 1ULL << n ;
+  for (uint64_t i = 0 ; i < N ; i++)
+    if (TEST_BIT(vec, i))
+      SET_BIT(vec_rotated, i^rot) ;
+}

@@ -507,6 +507,7 @@ int main(int argc, char** argv) {
     test5(argc, argv) ;
     break ;
 
+  // batched ohe evaluation
   case 6 :
     test6(argc, argv) ;
     break ;

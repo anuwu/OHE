@@ -82,13 +82,6 @@ LUT input_lut(int n, int m, string lut_path) {
   return lut ;
 }
 
-void rotate(int n, block *vec, uint64_t rot, block *vec_rotated) {
-  uint64_t N = 1ULL << n ;
-  for (uint64_t i = 0 ; i < N ; i++)
-    if (TEST_BIT(vec, i))
-      SET_BIT(vec_rotated, i^rot) ;
-}
-
 void eval_lut(int n, LUT &lut, block *vec, block *output) {
   if (n != lut.n) {
     cerr << "Incompatible size of OHE (" << n << ") and LUT input size (" << lut.n << ")\n" ;
@@ -129,4 +122,8 @@ void eval_lut(int n, LUT &lut, block *vec, block *output) {
   // Delete and return
   delete[] tmp ;
   delete[] vec_t ;
+}
+
+void eval_lut_with_rot(int n, LUT &lut, block *vec, uint64_t rot, block *output) {
+  ;
 }
