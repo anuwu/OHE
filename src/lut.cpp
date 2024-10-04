@@ -175,9 +175,8 @@ void secure_eval(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, LUT &lut, b
     exit(EXIT_FAILURE) ;
   }
 
-  // Initialize variables
-  int m = lut.m ;
-  int m_blocks = (m+127)/128 ;
+  // Number of output blocks
+  int m_blocks = (lut.m+127)/128 ;
  
   // Compute x+a
   block *masked_inp = new block[1] ;
@@ -195,49 +194,56 @@ void secure_eval(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, LUT &lut, b
   reconst(party, ot1, ot2, lut.m, otp_share, output) ;
 
   // Delete stuff
-  // delete[] alpha ;
   delete[] masked_inp ;
   delete[] reconst_masked_inp ;
   delete[] otp_share ;
 }
 
-void batched_secure_eval(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, LUT &lut, block *inp, block **ohes, block **alphas, block **outputs) {
+void batched_secure_eval(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, LUT &lut, block **inps, block **ohes, block **alphas, block **outputs) {
   // Error message
   if (n != lut.n) {
     cerr << "Incompatible size of OHE (" << n << ") and LUT input size (" << lut.n << ")\n" ;
     exit(EXIT_FAILURE) ;
   }
 
+  // Initialize variables
+  int m_blocks = (lut.m+127)/128 ;
+
   // Compute x+a
-  block *masked_inp = new block[batch_size] ; initialize_blocks(masked_inp, batch_size) ;
-  for (int b = 0 ; b < batch_size ; b++)
-    xorBlocks_arr(masked_inp+b, inp+b, alphas[b], 1) ;
+  block **masked_inps = new block*[batch_size] ; 
+  for (int b = 0 ; b < batch_size ; b++) {
+    masked_inps[b] = new block[1] ;
+    initialize_blocks(masked_inps[b], 1) ;
+    xorBlocks_arr(masked_inps[b], inps[b], alphas[b], 1) ;
+  }
 
   // Send and receive shares of (x+a)
-  int msg_flat_blocks = (n*batch_size+127)/128 ;
-  block *msg_flat = new block[msg_flat_blocks] ; initialize_blocks(msg_flat, msg_flat_blocks) ;
-  block *reconst_msg_flat = new block[msg_flat_blocks] ; initialize_blocks(reconst_msg_flat, msg_flat_blocks) ;
-  block *reconst_masked_inp = new block[batch_size] ; initialize_blocks(reconst_masked_inp, batch_size) ;
-  for (int b = 0 ; b < batch_size ; b++)
-    copyBits(msg_flat+(b*n)/128, (b*n)%128, masked_inp+b, 0, n) ;
-  reconst(party, ot1, ot2, n*batch_size, msg_flat, reconst_msg_flat) ;
-  for (int b = 0 ; b < batch_size ; b++)
-    copyBits(reconst_masked_inp+b, 0, reconst_msg_flat+(b*n)/128, (b*n)%128, n) ;
+  block **reconst_masked_inps = new block*[batch_size] ;
+  for (int b = 0 ; b < batch_size ; b++) {
+    reconst_masked_inps[b] = new block[1] ;
+    initialize_blocks(reconst_masked_inps[b], 1) ;
+    reconst(party, ot1, ot2, n, masked_inps[b], reconst_masked_inps[b]) ;
+  }
 
   // f(T) * H(x) = f(t) with rotation
-  block *otp_share = new block[batch_size] ; initialize_blocks(otp_share, batch_size) ;
-  for (int b = 0 ; b < batch_size ; b++)
-    eval_lut_with_rot(n, lut, ohes[b], *((uint64_t*)(reconst_masked_inp+b)), otp_share+b) ;
+  block **otp_shares = new block*[batch_size] ; 
+  for (int b = 0 ; b < batch_size ; b++) {
+    otp_shares[b] = new block[m_blocks] ;
+    initialize_blocks(otp_shares[b], m_blocks) ;
+    eval_lut_with_rot(n, lut, ohes[b], *((uint64_t*)(reconst_masked_inps[b])), otp_shares[b]) ;
+  }
     
   // Send and receive f(t)
   for (int b = 0 ; b < batch_size ; b++)
-    reconst(party, ot1, ot2, lut.m, otp_share+b, outputs[b]) ;
+    reconst(party, ot1, ot2, lut.m, otp_shares[b], outputs[b]) ;
 
   // Delete stuff
-  // delete[] alpha ;
-  delete[] masked_inp ;
-  delete[] msg_flat ;
-  delete[] reconst_msg_flat ;
-  delete[] reconst_masked_inp ;
-  delete[] otp_share ;
+  for (int b = 0 ; b < batch_size ; b++) {
+    delete[] masked_inps[b] ;
+    delete[] reconst_masked_inps[b] ;
+    delete[] otp_shares[b] ;
+  }
+  delete[] masked_inps ;
+  delete[] reconst_masked_inps ;
+  delete[] otp_shares ;
 }

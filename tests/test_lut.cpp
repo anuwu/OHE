@@ -297,12 +297,15 @@ void test6(int argc, char **argv) {
   int num_blocks = get_ohe_blocks(n) ;
   int m_blocks = (m+127)/128 ;
   PRG prg ;
-  block *inp_share = new block[batch_size] ;
-  prg.random_block(inp_share, batch_size) ; 
   block input_mask = zero_block ;
   for (int i = 0 ; i < n ; i++)
     input_mask = set_bit(input_mask, i) ;
-  andBlocks_arr(inp_share, input_mask, batch_size) ;
+  block **inp_shares = new block*[batch_size] ;
+  for (int b = 0 ; b < batch_size ; b++) {
+    inp_shares[b] = new block[1] ;
+    prg.random_block(inp_shares[b], 1) ; 
+    andBlocks_arr(inp_shares[b], input_mask, 1) ;
+  }
   LUT func ;
   if (lut_name == "id") {
     if (m != n) {
@@ -332,12 +335,20 @@ void test6(int argc, char **argv) {
   }
 
   // Secure evaluation
+  auto start_exp = clock_start() ;
+  uint64_t comm_var = io->counter ; 
   block **reconst_otps = new block*[batch_size] ;
   for (int b = 0 ; b < batch_size ; b++) {
     reconst_otps[b] = new block[m_blocks] ;
     initialize_blocks(reconst_otps[b], m_blocks) ;
   }
-  batched_secure_eval(party, n, batch_size, ot1, ot2, func, inp_share, ohes, alphas, reconst_otps) ;
+  batched_secure_eval(party, n, batch_size, ot1, ot2, func, inp_shares, ohes, alphas, reconst_otps) ;
+
+  long long t_exp = time_from(start_exp);  
+  comm_var = io->counter - comm_var ;
+
+  cout << "Comms : " << comm_var << " bytes\n" ;
+  cout << fixed << setprecision(5) << "Time taken : " << double(t_exp)/(1e3*batch_size) << " ms\n" ;
     
   // Check validity
   block *reconst_inp = new block[batch_size] ; initialize_blocks(reconst_inp, batch_size) ;
@@ -346,7 +357,7 @@ void test6(int argc, char **argv) {
   bool all_flag = true ;
   int corr = 0 ;
   for (int b = 0 ; b < batch_size ; b++) {
-    reconst(party, ot1, ot2, n, inp_share+b, reconst_inp+b) ;
+    reconst(party, ot1, ot2, n, inp_shares[b], reconst_inp+b) ;
     reconst_inp_ohes[b] = new block[num_blocks] ; initialize_blocks(reconst_inp_ohes[b], num_blocks) ;
     get_ohe_from_plain(reconst_inp+b, reconst_inp_ohes[b]) ;
     clear_otps[b] = new block[m_blocks] ; initialize_blocks(clear_otps[b], m_blocks) ;
@@ -373,13 +384,14 @@ void test6(int argc, char **argv) {
 
   // Delete stuff
   for (int b = 0 ; b < batch_size ; b++) {
+    delete[] inp_shares[b] ;
     delete[] ohes[b] ;
     delete[] alphas[b] ;
     delete[] reconst_otps[b] ;
     delete[] reconst_inp_ohes[b] ;
     delete[] clear_otps[b] ;
   }
-  delete[] inp_share ;
+  delete[] inp_shares ;
   delete[] ohes ;
   delete[] alphas ;
   delete[] reconst_inp ;

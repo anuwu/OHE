@@ -306,21 +306,21 @@ unordered_map<int, NetIO*> get_pairwise_channels_threaded(int party, int parties
 }
 
 void reconst(int party, COT<NetIO> *ot1, COT<NetIO> *ot2, int bits, block *share, block *rec) {
-  int n_bytes = (bits+7)/8 ;
-  int n_blocks = (bits+127)/128 ;
-  block *rcv_share = new block[n_blocks] ;
-  initialize_blocks(rcv_share, n_blocks) ;
+  int bytes = (bits+7)/8 ;
+  int blocks = (bits+127)/128 ;
+  block *rcv_share = new block[blocks] ;
+  initialize_blocks(rcv_share, blocks) ;
   if (party == ALICE) {
-    ot1->io->send_data(share, n_bytes) ;
-    ot2->io->recv_data(rcv_share, n_bytes) ;
+    ot1->io->send_data(share, bytes) ;
+    ot2->io->recv_data(rcv_share, bytes) ;
   } else {
-    ot1->io->recv_data(rcv_share, n_bytes) ;
-    ot2->io->send_data(share, n_bytes) ;
+    ot1->io->recv_data(rcv_share, bytes) ;
+    ot2->io->send_data(share, bytes) ;
   }
   ot1->io->flush() ;
   ot2->io->flush() ;
 
-  xorBlocks_arr(rec, rcv_share, share, n_blocks) ;
+  xorBlocks_arr(rec, rcv_share, share, blocks) ;
   delete[] rcv_share ;
 }
 

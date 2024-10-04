@@ -198,6 +198,9 @@ inline block right_shift(const block &blk, int shift) {
 }
 
 inline void copyBits(block *to, int pos1, block *from, int pos2, int bits) {
+  if (pos1+bits-1>127 || pos2+bits-1>127)
+    cout << "ALARM!\n" ;
+
   block mask1 = zero_block ;
   for (int ind1 = 0 ; ind1 < 128 ; ind1++)
     if (ind1 < pos1 || ind1 > pos1 + bits - 1)
