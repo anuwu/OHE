@@ -1,5 +1,6 @@
 #include "ohe.h"
 #include "lut.h"
+#include "utils.h"
 #include <time.h>
 #include <iostream>
 
@@ -148,29 +149,6 @@ void test4(int argc, char **argv) {
 
 /************************* OHE evaluation *************************/
 
-void reconst(int party, COT<NetIO> *ot1, COT<NetIO> *ot2, int bits, block *share, block *rec) {
-  int n_bytes = (bits+7)/8 ;
-  block *rcv_share = new block[1] ;
-  initialize_blocks(rcv_share, 1) ;
-  if (party == ALICE) {
-    ot1->io->send_data(share, n_bytes) ;
-    ot2->io->recv_data(rcv_share, n_bytes) ;
-  } else {
-    ot1->io->recv_data(rcv_share, n_bytes) ;
-    ot2->io->send_data(share, n_bytes) ;
-  }
-  ot1->io->flush() ;
-  ot2->io->flush() ;
-
-  xorBlocks_arr(rec, rcv_share, share, 1) ;
-  delete[] rcv_share ;
-}
-
-void get_ohe_from_plain(block *inp, block *ohe) {
-  uint64_t *data = (uint64_t*)inp ;
-  SET_BIT(ohe, data[0]) ;
-}
-
 // Single OHE evaluation
 void test5(int argc, char **argv) {
   // Abort message
@@ -241,34 +219,9 @@ void test5(int argc, char **argv) {
     exit(EXIT_FAILURE) ;
   }
 
-  /************************* Main protocol *************************/
-
-  // f(identity) * H(a) = a
-  LUT id = identity(n) ;
-  block *alpha = new block[1] ; initialize_blocks(alpha, 1) ;
-  eval_lut(n, id, ohe, alpha) ; 
-
-  // Compute x+a
-  block *masked_inp = new block[1] ;
-  xorBlocks_arr(masked_inp, inp_share, alpha, 1) ;
-
-  // Send and receive shares of (x+a)
-  block *reconst_masked_inp = new block[1] ; initialize_blocks(reconst_masked_inp, 1) ;
-  reconst(party, ot1, ot2, n, masked_inp, reconst_masked_inp) ;
-
-  // Rotate H(a) by (x+a) to get H(x)
-  uint64_t *data = (uint64_t*)reconst_masked_inp ;
-  uint64_t rot = data[0] ;
-  block *ohe_rot = new block[num_blocks] ; initialize_blocks(ohe_rot, num_blocks) ;
-  rotate(n, ohe, rot, ohe_rot) ;
-
-  // f(T) * H(x) = f(t)
-  block *otp_share = new block[m_blocks] ; initialize_blocks(otp_share, m_blocks) ;
-  eval_lut(n, func, ohe_rot, otp_share) ;
-
-  // Send and receive f(t)
+  // Do secure evaluation
   block *reconst_otp = new block[m_blocks] ; initialize_blocks(reconst_otp, m_blocks) ;
-  reconst(party, ot1, ot2, m, otp_share, reconst_otp) ;
+  secure_eval(party, n, ot1, ot2, func, inp_share, ohe, reconst_otp) ;
 
   // Check validity
   block *reconst_inp = new block[1] ; initialize_blocks(reconst_inp, 1) ;
@@ -290,13 +243,8 @@ void test5(int argc, char **argv) {
     cout << "\033[1;31m" << "Failed" << "\033[0m\n" ;
 
   // Delete stuff
-  delete[] inp_share ; 
+  delete[] inp_share ;
   delete[] ohe ;
-  delete[] alpha ;
-  delete[] masked_inp ;
-  delete[] reconst_masked_inp ;
-  delete[] ohe_rot ;
-  delete[] otp_share ;
   delete[] reconst_otp ;
   delete[] reconst_inp ;
   delete[] reconst_inp_ohe ;
@@ -374,51 +322,13 @@ void test6(int argc, char **argv) {
     exit(EXIT_FAILURE) ;
   }
 
-  /************************* Main protocol *************************/
-
-  auto start_exp = clock_start() ; 
-  uint64_t comm_var = io->counter ;
-
-  // f(identity) * H(a) = a
-  LUT id = identity(n) ;
-  block *alpha = new block[batch_size] ; initialize_blocks(alpha, batch_size) ;
-  for (int b = 0 ; b < batch_size ; b++)
-    eval_lut(n, id, ohes[b], alpha+b) ;
-
-  // Compute x+a
-  block *masked_inp = new block[batch_size] ; initialize_blocks(masked_inp, batch_size) ;
-  xorBlocks_arr(masked_inp, inp_share, alpha, batch_size) ;
-
-  // Send and receive shares of (x+a)
-  block *reconst_masked_inp = new block[batch_size] ; initialize_blocks(reconst_masked_inp, batch_size) ;
-  for (int b = 0 ; b < batch_size ; b++)
-    reconst(party, ot1, ot2, n, masked_inp+b, reconst_masked_inp+b) ;
-
-  // Rotate H(a) by (x+a) to get H(x)
-  block **ohes_rot = new block*[batch_size] ; 
-  for (int b = 0 ; b < batch_size ; b++) {
-    uint64_t *data = (uint64_t*)(reconst_masked_inp+b) ;
-    uint64_t rot = data[0] ;
-    ohes_rot[b] = new block[num_blocks] ; initialize_blocks(ohes_rot[b], num_blocks) ;
-    rotate(n, ohes[b], rot, ohes_rot[b]) ;
-  }
-
-  // f(T) * H(x) = f(t)
-  block *otp_share = new block[batch_size] ; initialize_blocks(otp_share, batch_size) ;
-  for (int b = 0 ; b < batch_size ; b++)
-    eval_lut(n, func, ohes_rot[b], otp_share+b) ;
-
-  // Send and receive f(t)
+  // Secure evaluation
   block **reconst_otps = new block*[batch_size] ;
   for (int b = 0 ; b < batch_size ; b++) {
     reconst_otps[b] = new block[m_blocks] ;
-    reconst(party, ot1, ot2, m, otp_share+b, reconst_otps[b]) ;
+    initialize_blocks(reconst_otps[b], m_blocks) ;
   }
-
-  long long t_exp = time_from(start_exp);  
-  comm_var = io->counter - comm_var ;
-  cout << "Comm : " << comm_var << " bytes\n" ;
-  cout << fixed << setprecision(5) << "Time taken : " << double(t_exp)/(1e3*batch_size) << " ms\n" ;
+  batched_secure_eval(party, n, batch_size, ot1, ot2, func, inp_share, ohes, reconst_otps) ;
     
   // Check validity
   block *reconst_inp = new block[batch_size] ; initialize_blocks(reconst_inp, batch_size) ;
@@ -455,20 +365,14 @@ void test6(int argc, char **argv) {
   // Delete stuff
   for (int b = 0 ; b < batch_size ; b++) {
     delete[] ohes[b] ;
-    delete[] ohes_rot[b] ;
     delete[] reconst_otps[b] ;
     delete[] reconst_inp_ohes[b] ;
     delete[] clear_otps[b] ;
   }
   delete[] inp_share ;
   delete[] ohes ;
-  delete[] alpha ;
-  delete[] masked_inp ;
-  delete[] reconst_masked_inp ;
-  delete[] ohes_rot ;
-  delete[] otp_share ;
-  delete[] reconst_otps ;
   delete[] reconst_inp ;
+  delete[] reconst_otps ;
   delete[] reconst_inp_ohes ;
   delete[] clear_otps ; 
 }

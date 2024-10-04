@@ -242,4 +242,10 @@ unordered_map<int, NetIO*> get_pairwise_channels(int party, int parties, int sta
 
 unordered_map<int, NetIO*> get_pairwise_channels_threaded(int party, int parties, int start_port) ;
 
+/************************* Other utilities *************************/
+
+void reconst(int party, COT<NetIO> *ot1, COT<NetIO> *ot2, int bits, block *share, block *rec) ;
+
+void get_ohe_from_plain(block *inp, block *ohe) ;
+
 #endif

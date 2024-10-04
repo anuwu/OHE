@@ -304,3 +304,27 @@ unordered_map<int, NetIO*> get_pairwise_channels_threaded(int party, int parties
 
     return ios ;
 }
+
+void reconst(int party, COT<NetIO> *ot1, COT<NetIO> *ot2, int bits, block *share, block *rec) {
+  int n_bytes = (bits+7)/8 ;
+  int n_blocks = (bits+127)/128 ;
+  block *rcv_share = new block[n_blocks] ;
+  initialize_blocks(rcv_share, n_blocks) ;
+  if (party == ALICE) {
+    ot1->io->send_data(share, n_bytes) ;
+    ot2->io->recv_data(rcv_share, n_bytes) ;
+  } else {
+    ot1->io->recv_data(rcv_share, n_bytes) ;
+    ot2->io->send_data(share, n_bytes) ;
+  }
+  ot1->io->flush() ;
+  ot2->io->flush() ;
+
+  xorBlocks_arr(rec, rcv_share, share, n_blocks) ;
+  delete[] rcv_share ;
+}
+
+void get_ohe_from_plain(block *inp, block *ohe) {
+  uint64_t *data = (uint64_t*)inp ;
+  SET_BIT(ohe, data[0]) ;
+}

@@ -1,3 +1,5 @@
+#include "utils.h"
+#include "ohe.h"
 #include "lut.h"
 #include <iostream>
 #include <fstream>
@@ -125,5 +127,127 @@ void eval_lut(int n, LUT &lut, block *vec, block *output) {
 }
 
 void eval_lut_with_rot(int n, LUT &lut, block *vec, uint64_t rot, block *output) {
-  ;
+  if (n != lut.n) {
+    cerr << "Incompatible size of OHE (" << n << ") and LUT input size (" << lut.n << ")\n" ;
+    exit(EXIT_FAILURE) ;
+  }
+
+  // Initialize variables
+  uint64_t N = 1ULL << n ;
+  int m = lut.m ;
+  int m_blocks = (m+127)/128 ;
+  int m_rem = m % 128 ;
+  block one_rest = zero_block ;
+  for (int i = 0 ; i < m_rem ; i++)
+    one_rest = set_bit(one_rest, i) ;
+
+  // Do the product
+  block *tmp = new block[m_blocks] ;
+  block *vec_t = new block[m_blocks] ;
+  initialize_blocks(tmp, m_blocks) ;
+  for (uint64_t i = 0 ; i < N ; i++) {
+    // Replicate OHE at index i, m times
+    block rep_block, rest_rep_block ;
+    if (TEST_BIT(vec, i^rot)) {
+      rep_block = all_one_block ;
+      rest_rep_block = one_rest ;
+    } else {
+      rep_block = zero_block ;
+      rest_rep_block = zero_block ;
+    }
+    initialize_blocks(vec_t, m_blocks-1, rep_block) ;
+    vec_t[m_blocks-1] = rest_rep_block ;
+
+    // XOR accumulate into res
+    andBlocks_arr(tmp, vec_t, lut.table[i], m_blocks) ;
+    xorBlocks_arr(output, tmp, m_blocks) ;
+  }
+
+  // Delete and return
+  delete[] tmp ;
+  delete[] vec_t ;
+}
+
+void secure_eval(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, LUT &lut, block *inp, block *ohe, block *output) {
+  // Error message
+  if (n != lut.n) {
+    cerr << "Incompatible size of OHE (" << n << ") and LUT input size (" << lut.n << ")\n" ;
+    exit(EXIT_FAILURE) ;
+  }
+
+  // Initialize variables
+  int m = lut.m ;
+  int m_blocks = (m+127)/128 ;
+ 
+  // f(identity) * H(a) = a
+  LUT id = identity(n) ;
+  block *alpha = new block[1] ; initialize_blocks(alpha, 1) ;
+  eval_lut(n, id, ohe, alpha) ; 
+
+  // Compute x+a
+  block *masked_inp = new block[1] ;
+  xorBlocks_arr(masked_inp, inp, alpha, 1) ;
+
+  // Send and receive shares of (x+a)
+  block *reconst_masked_inp = new block[1] ; initialize_blocks(reconst_masked_inp, 1) ;
+  reconst(party, ot1, ot2, n, masked_inp, reconst_masked_inp) ;
+
+  // f(T) * H(x) = f(t) with rotation
+  block *otp_share = new block[m_blocks] ; initialize_blocks(otp_share, m_blocks) ;
+  eval_lut_with_rot(n, lut, ohe, *((uint64_t*)reconst_masked_inp), otp_share) ;
+
+  // Send and receive f(t)
+  reconst(party, ot1, ot2, lut.m, otp_share, output) ;
+
+  // Delete stuff
+  delete[] alpha ;
+  delete[] masked_inp ;
+  delete[] reconst_masked_inp ;
+  delete[] otp_share ;
+}
+
+void batched_secure_eval(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, LUT &lut, block *inp, block **ohes, block **outputs) {
+  // Error message
+  if (n != lut.n) {
+    cerr << "Incompatible size of OHE (" << n << ") and LUT input size (" << lut.n << ")\n" ;
+    exit(EXIT_FAILURE) ;
+  }
+
+  // f(identity) * H(a) = a
+  LUT id = identity(n) ;
+  block *alpha = new block[batch_size] ; initialize_blocks(alpha, batch_size) ;
+  for (int b = 0 ; b < batch_size ; b++)
+    eval_lut(n, id, ohes[b], alpha+b) ;
+
+  // Compute x+a
+  block *masked_inp = new block[batch_size] ; initialize_blocks(masked_inp, batch_size) ;
+  xorBlocks_arr(masked_inp, inp, alpha, batch_size) ;
+
+  // Send and receive shares of (x+a)
+  int msg_flat_blocks = (n*batch_size+127)/128 ;
+  block *msg_flat = new block[msg_flat_blocks] ; initialize_blocks(msg_flat, msg_flat_blocks) ;
+  block *reconst_msg_flat = new block[msg_flat_blocks] ; initialize_blocks(reconst_msg_flat, msg_flat_blocks) ;
+  block *reconst_masked_inp = new block[batch_size] ; initialize_blocks(reconst_masked_inp, batch_size) ;
+  for (int b = 0 ; b < batch_size ; b++)
+    copyBits(msg_flat+(b*n)/128, (b*n)%128, masked_inp+b, 0, n) ;
+  reconst(party, ot1, ot2, n*batch_size, msg_flat, reconst_msg_flat) ;
+  for (int b = 0 ; b < batch_size ; b++)
+    copyBits(reconst_masked_inp+b, 0, reconst_msg_flat+(b*n)/128, (b*n)%128, n) ;
+
+  // f(T) * H(x) = f(t) with rotation
+  block *otp_share = new block[batch_size] ; initialize_blocks(otp_share, batch_size) ;
+  for (int b = 0 ; b < batch_size ; b++)
+    eval_lut_with_rot(n, lut, ohes[b], *((uint64_t*)(reconst_masked_inp+b)), otp_share+b) ;
+    
+  // Send and receive f(t)
+  for (int b = 0 ; b < batch_size ; b++)
+    reconst(party, ot1, ot2, lut.m, otp_share+b, outputs[b]) ;
+
+  // Delete stuff
+  delete[] alpha ;
+  delete[] masked_inp ;
+  delete[] msg_flat ;
+  delete[] reconst_msg_flat ;
+  delete[] reconst_masked_inp ;
+  delete[] otp_share ;
 }

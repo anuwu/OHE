@@ -79,10 +79,13 @@ LUT input_lut(int n, int m, string lut_path) ;
 // Multiply with truth table
 void eval_lut(int n, LUT &lut, block *vec, block *output) ;
 
+// Multiply with truth table with in-place rotation
 void eval_lut_with_rot(int n, LUT &lut, block *vec, uint64_t rot, block *output) ;
 
 // Secure eval
+void secure_eval(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, LUT &lut, block *inp, block *ohe, block *output) ;
 
-// Secure batched eval
+// Batched secure eval
+void batched_secure_eval(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, LUT &lut, block *inp, block **ohes, block **outputs) ;
 
 #endif
