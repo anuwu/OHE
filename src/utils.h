@@ -9,6 +9,7 @@
 
 #define SET_BIT(A, B) (A[(B)/128] = set_bit(A[(B)/128], (B)%128))
 #define TEST_BIT(A, B) test_bit(A[(B)/128], (B)%128)
+#define MEASUREMENT_PRECISION 3
 
 using namespace emp ;
 using namespace std ;
@@ -249,6 +250,6 @@ unordered_map<int, NetIO*> get_pairwise_channels_threaded(int party, int parties
 
 void reconst(int party, COT<NetIO> *ot1, COT<NetIO> *ot2, int bits, block *share, block *rec) ;
 
-void get_ohe_from_plain(block *inp, block *ohe) ;
+void rotate(int n, block *vec, uint64_t rot, block *vec_rotated) ;
 
 #endif

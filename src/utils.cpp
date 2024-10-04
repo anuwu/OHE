@@ -324,7 +324,9 @@ void reconst(int party, COT<NetIO> *ot1, COT<NetIO> *ot2, int bits, block *share
   delete[] rcv_share ;
 }
 
-void get_ohe_from_plain(block *inp, block *ohe) {
-  uint64_t *data = (uint64_t*)inp ;
-  SET_BIT(ohe, data[0]) ;
+void rotate(int n, block *vec, uint64_t rot, block *vec_rotated) {
+  uint64_t N = 1ULL << n ;
+  for (uint64_t i = 0 ; i < N ; i++)
+    if (TEST_BIT(vec, i))
+      SET_BIT(vec_rotated, i^rot) ;
 }

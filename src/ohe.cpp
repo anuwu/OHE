@@ -5,7 +5,15 @@
 using namespace std ;
 using namespace emp ;
 
-block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alpha, bool print_comm) {
+void get_ohe_from_plain(block *inp, block *ohe) {
+  SET_BIT(ohe, ((uint64_t*)inp)[0]) ;
+}
+
+block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alpha, bool measure) {
+  // Start measurement counters
+  long long running_time ;
+  uint64_t running_comms = ot1->io->counter ;
+
   /************************* Base Case *************************/
 
   // Declare
@@ -32,15 +40,18 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alp
 
   // Handle base case
   if (n == 1) {
-    if (print_comm) cout << "ROT comms : 0 bytes\n" ;
-    if (print_comm) cout << "Corr comms : 0 bytes\n" ;
     delete[] b ;
+    if (measure) {
+      cout << "ROT time : 0 ms\n" ;
+      cout << "ROT comms : 0 bytes\n" ;
+      cout << "Corr time : 0 ms\n" ;
+      cout << "Corr comms : 0 bytes\n" ;
+    }
     return ohe ;
   }
 
   /************************* Declare *************************/
 
-  uint64_t rot_comms = ot1->io->counter ;
   block *r0 = new block[n-1] ;
   block *r1 = new block[n-1] ;
   block *rcv_ot = new block[n-1] ;
@@ -48,6 +59,7 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alp
   /************************* Perform Random OTs *************************/
 
   // Send and Recv
+  auto start_exp = clock_start() ;
   if (party == ALICE) {
     ot1->send_rot(r0, r1, n-1) ;
     ot2->recv_rot(rcv_ot, b+1, n-1) ; 
@@ -57,11 +69,15 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alp
   }
   ot1->io->flush() ;
   ot2->io->flush() ;
-
+    
   // Print stuff
-  rot_comms = ot1->io->counter - rot_comms ;
-  if (print_comm) cout << "ROT comms : " << rot_comms << " bytes\n" ;
-  int64_t corr_comms = ot1->io->counter ;
+  running_time = time_from(start_exp) ;
+  if (measure) {
+    cout << fixed << setprecision(MEASUREMENT_PRECISION) << "ROT time : " << running_time/1e3 << " ms\n" ;
+    cout << "ROT comms : " << (ot1->io->counter - running_comms) << " bytes\n" ;
+  } 
+  running_comms = ot1->io->counter ;
+  start_exp = clock_start() ;
 
   /************************* Correct Random OTs *************************/
 
@@ -139,22 +155,34 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alp
     xorBlocks_arr(ohe, cross_share, small_blocks) ;
   }
 
+  // End measurement for corr
+  running_time = time_from(start_exp) ;
+
   // Delete intermediate variables
   delete[] msg ; delete[] rcv_msg ; delete[] cross_share ;
   delete[] r0_actual ; delete[] r1_actual ; delete[] rcv_ot_actual ;
 
-  // Print stuff
-  corr_comms = ot1->io->counter - corr_comms ;
-  if (print_comm) cout << "Corr comms : " << corr_comms << " bytes\n" ;
+  /************************* Exit *************************/
 
-  /************************* Delete and Return *************************/
-
+  // Delete
   delete[] b ;
   delete[] r0 ; delete[] r1 ; delete[] rcv_ot ;
+  
+  // Print stuff
+  if (measure) {
+    cout << fixed << setprecision(MEASUREMENT_PRECISION) << "Corr time : " << running_time/1e3 << " ms\n" ;
+    cout << "Corr comms : " << (ot1->io->counter - running_comms) << " bytes\n" ;
+  } 
+
+  // Return
   return ohe ;
 }
 
-block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alpha, bool print_comm) {
+block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alpha, bool measure) {
+  // Start measurement counters
+  long long running_time ;
+  uint64_t running_comms = ot1->io->counter ;
+
   /************************* Base Case *************************/
 
   // Declare
@@ -179,17 +207,20 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alp
         SET_BIT(ohe, 1) ;
       }
     }
-
-    if (print_comm) cout << "ROT comms : 0 bytes\n" ;
-    if (print_comm) cout << "Corr comms : 0 bytes\n" ;
+    
     delete[] single_bools ;
+    if (measure) {
+      cout << "ROT time : 0 ms\n" ;
+      cout << "ROT comms : 0 bytes\n" ;
+      cout << "Corr time : 0 ms\n" ;
+      cout << "Corr comms : 0 bytes\n" ;
+    }
     return ohe ;
   }
 
   /************************* Declare and Init *************************/
 
   // Declare
-  int64_t rot_comms = ot1->io->counter ;
   int ohe_size = 1 << n ; int num_ots = ohe_size - n - 1 ;
   block *hot = new block[num_blocks] ;
 
@@ -239,6 +270,8 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alp
 
   /************************* Perform Random OTs *************************/
 
+  // Send and recv
+  auto start_exp = clock_start() ;
   if (party == ALICE) {
     ot1->send_rot(r0, r1, num_ots) ;
     ot2->recv_rot(rcv_ot, b, num_ots) ; 
@@ -249,9 +282,14 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alp
   ot1->io->flush() ;
   ot2->io->flush() ;
 
-  rot_comms = ot1->io->counter - rot_comms ; 
-  if (print_comm) cout << "ROT comms : " << rot_comms << " bytes\n" ;
-  int64_t corr_comms = ot1->io->counter ;
+  // Print stuff
+  running_time = time_from(start_exp) ;
+  if (measure) {
+    cout << fixed << setprecision(MEASUREMENT_PRECISION) << "ROT time : " << running_time/1e3 << " ms\n" ;
+    cout << "ROT comms : " << (ot1->io->counter - running_comms) << " bytes\n" ;
+  } 
+  running_comms = ot1->io->counter ;
+  start_exp = clock_start() ;
 
   /************************* Correct Random OTs *************************/
 
@@ -334,13 +372,12 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alp
     }
   }
 
+  // End measurement for corr
+  running_time = time_from(start_exp) ;
+
   // Delete intermediate variables
   delete[] msgs ; delete[] rcv_msgs ; delete[] msg ; delete[] rcv_msg ;
   delete[] msg_bits ; delete[] rcv_bits ; 
-
-  // Print stuff
-  corr_comms = ot1->io->counter - corr_comms ;
-  if (print_comm) cout << "Corr comms : " << corr_comms << " bytes\n" ;
 
   /************************* Convert GMT to OHE *************************/
   
@@ -353,15 +390,28 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alp
       SET_BIT(ohe, conv_left[i]) ;
   }
 
-  /************************* Delete and Return *************************/
+  /************************* Exit *************************/
 
+  // Delete
   delete[] single_bools ; delete[] b ;
   delete[] r0 ; delete[] r1 ; delete[] rcv_ot ;
   delete[] hot ;
+
+  // Print stuff
+  if (measure) {
+    cout << fixed << setprecision(MEASUREMENT_PRECISION) << "Corr time : " << running_time/1e3 << " ms\n" ;
+    cout << "Corr comms : " << (ot1->io->counter - running_comms) << " bytes\n" ;
+  }
+
+  // Return
   return ohe ;
 }
 
-block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, block **alphas, bool print_comm) {
+block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, block **alphas, bool measure) {
+  // Start measurement counters
+  long long running_time ;
+  uint64_t running_comms = ot1->io->counter ;
+
   /************************* Base Case *************************/
 
   // Declare
@@ -391,15 +441,18 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
 
   // Return for base case
   if (n == 1) {
-    if (print_comm) cout << "ROT comms : 0 bytes\n" ;
-    if (print_comm) cout << "Corr comms : 0 bytes\n" ;
     delete[] first_bools ;
+    if (measure) {
+      cout << "ROT time : 0 ms\n" ;
+      cout << "ROT comms : 0 bytes\n" ;
+      cout << "Corr time : 0 ms\n" ;
+      cout << "Corr comms : 0 bytes\n" ;
+    }
     return ohes ;
   }
 
   /************************* Declare and Init *************************/
 
-  uint64_t rot_comms = ot1->io->counter ;
   block *r0s = new block[batch_size*(n-1)] ;
   block *r1s = new block[batch_size*(n-1)] ;
   block *rcv_ots = new block[batch_size*(n-1)] ;
@@ -413,6 +466,7 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   /************************* Perform Random OTs *************************/
 
   // Send and Recv
+  auto start_exp = clock_start() ;
   if (party == ALICE) {
     ot1->send_rot(r0s, r1s, batch_size*(n-1)) ; 
     ot2->recv_rot(rcv_ots, bs, batch_size*(n-1)) ; 
@@ -424,9 +478,13 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   ot2->io->flush() ;
 
   // Print stuff
-  rot_comms = ot1->io->counter - rot_comms ;
-  if (print_comm) cout << "ROT comms : " << rot_comms << " bytes\n" ;
-  int64_t corr_comms = ot1->io->counter ;
+  running_time = time_from(start_exp) ;
+  if (measure) {
+    cout << fixed << setprecision(MEASUREMENT_PRECISION) << "ROT time : " << running_time/1e3 << " ms\n" ;
+    cout << "ROT comms : " << (ot1->io->counter - running_comms) << " bytes\n" ;
+  } 
+  running_comms = ot1->io->counter ;
+  start_exp = clock_start() ;
 
   /************************* Correct Random OTs *************************/
 
@@ -541,6 +599,9 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
     }
   }
 
+  // End measurement for corr
+  running_time = time_from(start_exp) ;
+
   // Delete intermediate variables
   delete[] corr_flat_send ;
   delete[] corr_flat_rcv ;
@@ -555,19 +616,28 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   delete[] cross_shares ;
   delete[] r0_actuals ; delete[] r1_actuals ; delete[] rcv_ot_actuals ;
   delete[] msgs ; delete[] rcv_msgs ;
-
-  // Print stuff
-  corr_comms = ot1->io->counter - corr_comms ;
-  if (print_comm) cout << "Corr comms : " << corr_comms << " bytes\n" ;
   
-  /************************* Delete and Return *************************/
+  /************************* Exit *************************/
 
+  // Delete
   delete[] first_bools ; delete[] bs ;
   delete[] r0s ; delete[] r1s ; delete[] rcv_ots ;
+
+  // Print stuff
+  if (measure) {
+    cout << fixed << setprecision(MEASUREMENT_PRECISION) << "Corr time : " << running_time/1e3 << " ms\n" ;
+    cout << "Corr comms : " << (ot1->io->counter - running_comms) << " bytes\n" ;
+  } 
+
+  // Return
   return ohes ;
 }
 
-block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, block **alphas, bool print_comm) {
+block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, block **alphas, bool measure) {
+  // Start measurement counters
+  long long running_time ;
+  uint64_t running_comms = ot1->io->counter ;
+
   /************************* Base Case *************************/
 
   // Declare
@@ -593,23 +663,26 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
       if (party == ALICE)
         SET_BIT(ohes[b], single_bools[b][0] ? 1 : 0) ;
       else {
-        if (single_bools[0]) {
+        if (single_bools[b][0]) {
           SET_BIT(ohes[b], 0) ;
           SET_BIT(ohes[b], 1) ;
         }
       }
     }
 
-    if (print_comm) cout << "ROT comms : 0 bytes\n" ;
-    if (print_comm) cout << "Corr comms : 0 bytes\n" ;
     delete[] single_bools ;
+    if (measure) {
+      cout << "ROT time : 0 ms\n" ;
+      cout << "ROT comms : 0 bytes\n" ;
+      cout << "Corr time : 0 ms\n" ;
+      cout << "Corr comms : 0 bytes\n" ;
+    }
     return ohes ;
   }
 
   /************************* Declare and Init *************************/
 
   // Declare
-  uint64_t rot_comms = ot1->io->counter ;
   int ohe_size = 1 << n ; 
   int num_ots = ohe_size - n - 1 ;
   block **hots = new block*[batch_size] ;
@@ -664,6 +737,8 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
 
   /************************* Perform Random OTs  *************************/
 
+  // Send and receive
+  auto start_exp = clock_start() ;
   if (party == ALICE) {
     ot1->send_rot(r0s, r1s, batch_size*num_ots) ;
     ot2->recv_rot(rcv_ots, bs, batch_size*num_ots) ; 
@@ -674,9 +749,14 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   ot1->io->flush() ;
   ot2->io->flush() ;
 
-  rot_comms = ot1->io->counter - rot_comms ;
-  if (print_comm) cout << "ROT comms : " << rot_comms << " bytes\n" ;
-  int64_t corr_comms = ot1->io->counter ;
+  // Print stuff
+  running_time = time_from(start_exp) ;
+  if (measure) {
+    cout << fixed << setprecision(MEASUREMENT_PRECISION) << "ROT time : " << running_time/1e3 << " ms\n" ;
+    cout << "ROT comms : " << (ot1->io->counter - running_comms) << " bytes\n" ;
+  } 
+  running_comms = ot1->io->counter ;
+  start_exp = clock_start() ;
 
   /************************* Correct Random OTs *************************/
 
@@ -764,13 +844,12 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
     }
   }
 
+  // End measurement for corr
+  running_time = time_from(start_exp) ;
+
   // Delete intermediate variables
   delete[] msgs ; delete[] rcv_msgs ; delete[] msg ; delete[] rcv_msg ;
   delete[] msg_bits ; delete[] rcv_bits ; 
-
-  // Print stuff
-  corr_comms = ot1->io->counter - corr_comms ;
-  if (print_comm) cout << "Corr comms : " << corr_comms << " bytes\n" ;
 
   /************************* Convert GMT to OHE *************************/
 
@@ -785,8 +864,9 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
     }
   }
 
-  /************************* Delete and Return *************************/
+  /************************* Exit *************************/
 
+  // Delete stuff
   for (int b = 0 ; b < batch_size ; b++)
     delete[] single_bools[b] ;
   delete[] single_bools ;
@@ -795,13 +875,13 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   delete[] hots ;
   delete[] bs ;
   delete[] r0s ; delete[] r1s ; delete[] rcv_ots ;
-  
-  return ohes ;
-}
 
-void rotate(int n, block *vec, uint64_t rot, block *vec_rotated) {
-  uint64_t N = 1ULL << n ;
-  for (uint64_t i = 0 ; i < N ; i++)
-    if (TEST_BIT(vec, i))
-      SET_BIT(vec_rotated, i^rot) ;
+  // Print stuff
+  if (measure) {
+    cout << fixed << setprecision(MEASUREMENT_PRECISION) << "Corr time : " << running_time/1e3 << " ms\n" ;
+    cout << "Corr comms : " << (ot1->io->counter - running_comms) << " bytes\n" ;
+  }
+  
+  // Return
+  return ohes ;
 }

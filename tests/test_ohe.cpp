@@ -7,46 +7,46 @@ using namespace std ;
 using namespace emp ;
 
 block* reconst_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *ohe, bool print) {
-    // Declare and initialize
-    int num_blocks = get_ohe_blocks(n) ;
-    int comm_bytes = get_ohe_bytes(n) ;
-    block *rcv = new block[num_blocks] ;
-    block *res = new block[num_blocks] ;
-    block *zero = new block[1] ; 
-    initialize_blocks(rcv, num_blocks) ;
-    initialize_blocks(res, num_blocks) ;
-    initialize_blocks(zero, 1) ;    
+  // Declare and initialize
+  int num_blocks = get_ohe_blocks(n) ;
+  int comm_bytes = get_ohe_bytes(n) ;
+  block *rcv = new block[num_blocks] ;
+  block *res = new block[num_blocks] ;
+  block *zero = new block[1] ; 
+  initialize_blocks(rcv, num_blocks) ;
+  initialize_blocks(res, num_blocks) ;
+  initialize_blocks(zero, 1) ;    
 
-    // Send and Recv
-    if (party == ALICE) {
-      ot1->io->send_data(ohe, comm_bytes) ; 
-      ot2->io->recv_data(rcv, comm_bytes) ; 
-    } else {
-      ot1->io->recv_data(rcv, comm_bytes) ; 
-      ot2->io->send_data(ohe, comm_bytes) ; 
+  // Send and Recv
+  if (party == ALICE) {
+    ot1->io->send_data(ohe, comm_bytes) ; 
+    ot2->io->recv_data(rcv, comm_bytes) ; 
+  } else {
+    ot1->io->recv_data(rcv, comm_bytes) ; 
+    ot2->io->send_data(ohe, comm_bytes) ; 
+  }
+  ot1->io->flush() ;
+  ot2->io->flush() ;
+
+  // Reconstruct and print
+  xorBlocks_arr(res, rcv, ohe, num_blocks) ;
+  if (print) {
+    cout << "Received -\n" ;
+    for (int i = 0 ; i < num_blocks ; i++)
+      cout << rcv[i] << "\n" ;
+
+    cout << "Result -\n" ;
+    for (int i = 0 ; i < num_blocks ; i++) {
+      if(cmpBlock(res + i, zero, 1))
+        cout << res[i] << "\n" ;
+      else
+        cout << "\033[1;31m" << res[i] << "\033[0m\n" ;
     }
-    ot1->io->flush() ;
-    ot2->io->flush() ;
+  }
 
-    // Reconstruct and print
-    xorBlocks_arr(res, rcv, ohe, num_blocks) ;
-    if (print) {
-      cout << "Received -\n" ;
-      for (int i = 0 ; i < num_blocks ; i++)
-        cout << rcv[i] << "\n" ;
-
-      cout << "Result -\n" ;
-      for (int i = 0 ; i < num_blocks ; i++) {
-        if(cmpBlock(res + i, zero, 1))
-          cout << res[i] << "\n" ;
-        else
-          cout << "\033[1;31m" << res[i] << "\033[0m\n" ;
-      }
-    }
-
-    // Delete
-    delete[] rcv ; delete[] zero ;
-    return res ;
+  // Delete
+  delete[] rcv ; delete[] zero ;
+  return res ;
 }
 
 
@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
    };
 
   // Declare variables
-  int party, port, n ;
+  int party, port, n, batch_size ;
   string ot_type, prot_type ;
   bool batched ;
   NetIO *io ;
@@ -86,6 +86,13 @@ int main(int argc, char** argv) {
   ot_type = argv[4] ;
   prot_type = argv[5] ;
   batched = atoi(argv[6]) ;
+  if (batched) {
+    batch_size = atoi(argv[7]) ;
+    if (batch_size % 128 > 0) {
+      cerr << "Batch size must be a multiple of 128\n" ;
+      exit(EXIT_FAILURE) ;
+    }
+  }
   
   /************************* Create OT *************************/
 
@@ -99,7 +106,7 @@ int main(int argc, char** argv) {
     ot2 = new FerretCOT<NetIO>(party == 1 ? 2 : 1, 1, &io) ;
   }
   else {
-    cout << "Incorrect OT type\n" ;
+    cerr << "Incorrect OT type\n" ;
     exit(EXIT_FAILURE) ;
   }
 
@@ -107,17 +114,17 @@ int main(int argc, char** argv) {
 
   if (batched) {
     // Declare and initialize
-    int batch_size = 128 ;
     int num_blocks = get_ohe_blocks(n) ;
+    uint64_t ohe_size = 1ULL << n ;
     block **ohes, **alphas ;
     block *rec ;
+    rec = new block[num_blocks] ;
     alphas = new block*[batch_size] ;
     for (int b = 0 ; b < batch_size ; b++) {
       alphas[b] = new block[1] ;
       initialize_blocks(alphas[b], 1) ;
     }
       
-    
     // Get OHEs
     if (prot_type == "ohe")
       ohes = batched_random_ohe(party, n, batch_size, ot1, ot2, alphas) ;
@@ -131,7 +138,9 @@ int main(int argc, char** argv) {
     // Verify OHEs in the batch
     int correct = 0 ;    
     for (int b = 0 ; b < batch_size ; b++) {
-      rec = reconst_ohe(party, n, ot1, ot2, ohes[b], false) ;
+      // rec = reconst_ohe(party, n, ot1, ot2, ohes[b], false) ;
+      initialize_blocks(rec, num_blocks) ;
+      reconst(party, ot1, ot2, ohe_size, ohes[b], rec) ;
       int no_set = 0 ;
       for (int i = 0 ; i < num_blocks ; i++) {
         uint64_t *dat = (uint64_t*)(rec+i) ;
@@ -144,8 +153,6 @@ int main(int argc, char** argv) {
       }
       if (no_set == 1)
         correct++ ;
-
-      delete[] rec ;
     }
 
     // Print things
@@ -159,31 +166,35 @@ int main(int argc, char** argv) {
       delete[] ohes[b] ;
       delete[] alphas[b] ;
     }
-      
     delete[] ohes ;
+    delete[] rec ;
     delete[] alphas ;
   }
   else {
     // Declare and initialize
     block *ohe, *rec, *alpha ;
-    alpha = new block[1] ;
-    initialize_blocks(alpha, 1) ;
     int correct = 0 ;
     int num_blocks = get_ohe_blocks(n) ;
+    alpha = new block[1] ;
+    rec = new block[num_blocks] ;
 
     // Iterate over all test cases
-    int no_tests = min(100, 10 * (1 << n)) ;
+    uint64_t ohe_size = 1ULL << n ;
+    int no_tests = min((uint64_t)100, 10*ohe_size) ;
     for (int counter = 0 ; counter < no_tests ; counter++) {
+      initialize_blocks(alpha, 1) ;
+      initialize_blocks(rec, num_blocks) ;
+
       if (prot_type == "ohe")
         ohe = random_ohe(party, n, ot1, ot2, alpha) ;
       else if (prot_type == "gmt")
         ohe = random_gmt(party, n, ot1, ot2, alpha) ;
       else {
-        cout << "Incorrect OT type\n" ;
+        cerr << "Incorrect OT type\n" ;
         exit(EXIT_FAILURE) ;
       }
 
-      rec = reconst_ohe(party, n, ot1, ot2, ohe, false) ;
+      reconst(party, ot1, ot2, ohe_size, ohe, rec) ;
       int no_set = 0 ;
       for (int i = 0 ; i < num_blocks ; i++) {
         uint64_t *dat = (uint64_t*)(rec+i) ;
@@ -198,10 +209,12 @@ int main(int argc, char** argv) {
         correct++ ;
 
       delete[] ohe ; 
-      delete[] rec ;
-      delete[] alpha ;
     }
 
+    // Delete stuff
+    delete[] rec ;
+    delete[] alpha ;
+    
     // Print things
     if (correct == no_tests)
       cout << "\033[1;32m" << "Passed" << "\033[0m\n" ;
@@ -210,5 +223,10 @@ int main(int argc, char** argv) {
       return 1 ;
     }
   }
+
+  // Delete OT stuff
+  delete ot1 ;
+  delete ot2 ;
+  delete io ;
   return 0 ;
 }

@@ -102,10 +102,11 @@ void test3(int argc, char **argv) {
       cout << "Found rotated index at --> " << i << "\n" ;
   }
 
+  // Delete stuff
   delete[] hot ;
 }
 
-// Evaluate LUT
+// Evaluate identity
 void test4(int argc, char **argv) {
   // Abort message
   const auto abort = [&] {
@@ -134,7 +135,7 @@ void test4(int argc, char **argv) {
 
   LUT lut = identity(n) ;
   block *res = new block[1] ; initialize_blocks(res, 1) ;
-  eval_lut(n, lut, hot, res) ;
+  lut.eval_lut(n, hot, res) ;
   uint64_t recovered_index = 0 ;
   for (int i = 0 ; i < n ; i++)
     if (TEST_BIT(res, i))
@@ -143,6 +144,7 @@ void test4(int argc, char **argv) {
   cout << "hot_index = " << hot_index << "\n" ;
   cout << "recovered_index = " << recovered_index << "\n" ;
 
+  // Delete stuff
   delete[] hot ;
   delete[] res ;
 }
@@ -183,7 +185,7 @@ void test5(int argc, char **argv) {
     ot2 = new FerretCOT<NetIO>(party == 1 ? 2 : 1, 1, &io) ;
   }
   else {
-    cout << "Incorrect OT type\n" ;
+    cerr << "Incorrect OT type\n" ;
     exit(EXIT_FAILURE) ;
   }
 
@@ -223,7 +225,7 @@ void test5(int argc, char **argv) {
 
   // Do secure evaluation
   block *reconst_otp = new block[m_blocks] ; initialize_blocks(reconst_otp, m_blocks) ;
-  secure_eval(party, n, ot1, ot2, func, inp_share, ohe, alpha, reconst_otp) ;
+  func.secure_eval(party, n, ot1, ot2, inp_share, ohe, alpha, reconst_otp) ;
 
   // Check validity
   block *reconst_inp = new block[1] ; initialize_blocks(reconst_inp, 1) ;
@@ -231,7 +233,7 @@ void test5(int argc, char **argv) {
   block *reconst_inp_ohe = new block[num_blocks] ; initialize_blocks(reconst_inp_ohe, num_blocks) ;
   get_ohe_from_plain(reconst_inp, reconst_inp_ohe) ;
   block *clear_otp = new block[m_blocks] ; initialize_blocks(clear_otp, m_blocks) ;
-  eval_lut(n, func, reconst_inp_ohe, clear_otp) ;
+  func.eval_lut(n, reconst_inp_ohe, clear_otp) ;
   bool flag = true ;
   for (int i = 0 ; i < m_blocks ; i++) {
     if (!check_equal(clear_otp+i, reconst_otp+i)) {
@@ -252,6 +254,11 @@ void test5(int argc, char **argv) {
   delete[] reconst_inp ;
   delete[] reconst_inp_ohe ;
   delete[] clear_otp ; 
+
+  // Delete OT stuff
+  delete ot1 ;
+  delete ot2 ;
+  delete io ;
 }
 
 // Batched OHE evaluation
@@ -273,6 +280,10 @@ void test6(int argc, char **argv) {
   int n = atoi(argv[4]) ;
   int m = atoi(argv[5]) ;
   int batch_size = atoi(argv[6]) ;
+  if (batch_size % 128 > 0) {
+    cerr << "Batch size must be a multiple of 128\n" ;
+    exit(EXIT_FAILURE) ;
+  }
   string ot_type = argv[7] ;
   string prot_type = argv[8] ;
   string lut_name = argv[9] ;
@@ -289,7 +300,7 @@ void test6(int argc, char **argv) {
     ot2 = new FerretCOT<NetIO>(party == 1 ? 2 : 1, 1, &io) ;
   }
   else {
-    cout << "Incorrect OT type\n" ;
+    cerr << "Incorrect OT type\n" ;
     exit(EXIT_FAILURE) ;
   }
 
@@ -342,7 +353,7 @@ void test6(int argc, char **argv) {
     reconst_otps[b] = new block[m_blocks] ;
     initialize_blocks(reconst_otps[b], m_blocks) ;
   }
-  batched_secure_eval(party, n, batch_size, ot1, ot2, func, inp_shares, ohes, alphas, reconst_otps) ;
+  func.batched_secure_eval(party, n, batch_size, ot1, ot2, inp_shares, ohes, alphas, reconst_otps) ;
 
   long long t_exp = time_from(start_exp);  
   comm_var = io->counter - comm_var ;
@@ -361,7 +372,7 @@ void test6(int argc, char **argv) {
     reconst_inp_ohes[b] = new block[num_blocks] ; initialize_blocks(reconst_inp_ohes[b], num_blocks) ;
     get_ohe_from_plain(reconst_inp+b, reconst_inp_ohes[b]) ;
     clear_otps[b] = new block[m_blocks] ; initialize_blocks(clear_otps[b], m_blocks) ;
-    eval_lut(n, func, reconst_inp_ohes[b], clear_otps[b]) ;
+    func.eval_lut(n, reconst_inp_ohes[b], clear_otps[b]) ;
 
     bool flag_batch = true ; 
     for (int m = 0 ; m < m_blocks ; m++) {
@@ -398,6 +409,11 @@ void test6(int argc, char **argv) {
   delete[] reconst_otps ;
   delete[] reconst_inp_ohes ;
   delete[] clear_otps ; 
+
+  // Delete OT stuff
+  delete ot1 ;
+  delete ot2 ;
+  delete io ;
 }
 
 int main(int argc, char** argv) {

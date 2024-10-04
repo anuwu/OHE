@@ -19,7 +19,6 @@ int main(int argc, char** argv) {
    };
 
   // Declare variables
-  int64_t comm_var = 0 ;
   int party, port, n, batch_size ;
   string ot_type, prot_type ;
   bool batched ;
@@ -43,13 +42,18 @@ int main(int argc, char** argv) {
   ot_type = argv[4] ;
   prot_type = argv[5] ;
   batched = atoi(argv[6]) ;
-  if (batched)
+  if (batched) {
     batch_size = atoi(argv[7]) ;
+    if (batch_size % 128 > 0) {
+      cerr << "Batch size must be a multiple of 128\n" ;
+      exit(EXIT_FAILURE) ;
+    }
+  }
   
   /************************* Create OT *************************/
 
-  io = new NetIO(party == ALICE ? nullptr : "127.0.0.1", port) ;
-  comm_var = io->counter ;
+  io = new NetIO(party == ALICE ? nullptr : "127.0.0.1", port, true) ;
+  uint64_t running_comm = io->counter ;
   if (ot_type == "iknp") {
     ot1 = new IKNP<NetIO>(io) ;
     ot2 = new IKNP<NetIO>(io) ;
@@ -59,7 +63,7 @@ int main(int argc, char** argv) {
     ot2 = new FerretCOT<NetIO>(party == 1 ? 2 : 1, 1, &io) ;
   }
   else {
-    cout << "Incorrect OT type\n" ;
+    cerr << "Incorrect OT type\n" ;
     exit(EXIT_FAILURE) ;
   }
 
@@ -68,15 +72,15 @@ int main(int argc, char** argv) {
   if (batched) {
     // Declare and initialize
     block **ohes, **alphas ;
+    // --> Initialize ohes for outvar
     alphas = new block*[batch_size] ;
     for (int b = 0 ; b < batch_size ; b++) {
       alphas[b] = new block[1] ;
       initialize_blocks(alphas[b], 1) ;
     }
       
-    
     // Get OHEs
-    auto start_exp = clock_start(); 
+    auto total_start = clock_start() ;
     if (prot_type == "ohe")
       ohes = batched_random_ohe(party, n, batch_size, ot1, ot2, alphas, true) ;
     else if (prot_type == "gmt")
@@ -85,28 +89,25 @@ int main(int argc, char** argv) {
       cerr << "Incorrect OT type\n" ;
       exit(EXIT_FAILURE) ;
     }
-    long long t_exp = time_from(start_exp);  
-    comm_var = io->counter - comm_var ;
+    long long total_time = time_from(total_start) ;
+    cout << fixed << setprecision(MEASUREMENT_PRECISION) << "Total time : " << total_time/1e3 << " ms\n" ;
+    cout << "Total comms : " << (io->counter - running_comm) << " bytes\n" ;
 
     // Delete
     for (int b = 0 ; b < batch_size ; b++) {
       delete[] ohes[b] ;
       delete[] alphas[b] ;
-    }
-      
+    }    
     delete[] ohes ;
     delete[] alphas ;
-
-    // Print things
-    setprecision(5) ;  
-    cout << fixed << setprecision(5) << "Time taken : " << double(t_exp)/(1e3*batch_size) << " ms\n" ;
   }
   else {
     block *ohe, *alpha ;
+    // --> Initialize ohe for outvar
     alpha = new block[1] ;
     initialize_blocks(alpha, 1) ;
 
-    /************************* Dummy stuff *************************/
+    /************************* Fixed cost measurer *************************/
 
     // block *b1 = new block[100] ;
     // block *b2 = new block[100] ;
@@ -131,27 +132,28 @@ int main(int argc, char** argv) {
 
     /************************* Real stuff *************************/
 
-    // Measure and print
-    auto start_exp = clock_start(); 
-    int reps = 1 ;
-    for (int i = 0 ; i < reps ; i++) {
-      if (prot_type == "ohe")
-        ohe = random_ohe(party, n, ot1, ot2, alpha, true) ;
-      else if (prot_type == "gmt")
-        ohe = random_gmt(party, n, ot1, ot2, alpha, true) ;
-      else {
-        cerr << "Incorrect protocol type\n" ;
-        exit(EXIT_FAILURE) ;
-      }
+    // Get OHE
+    auto total_start = clock_start() ;
+    if (prot_type == "ohe")
+      ohe = random_ohe(party, n, ot1, ot2, alpha, true) ;
+    else if (prot_type == "gmt")
+      ohe = random_gmt(party, n, ot1, ot2, alpha, true) ;
+    else {
+      cerr << "Incorrect protocol type\n" ;
+      exit(EXIT_FAILURE) ;
     }
-    long long t_exp = time_from(start_exp);    
-    setprecision(5) ;
-    cout << fixed << setprecision(5) << "Time taken : " << double(t_exp)/(1e3*reps) << " ms\n" ;
+    long long total_time = time_from(total_start) ;
+    cout << fixed << setprecision(MEASUREMENT_PRECISION) << "Total time : " << total_time/1e3 << " ms\n" ;
+    cout << "Total comms : " << (io->counter - running_comm) << " bytes\n" ;
 
     // Delete
     delete[] ohe ; 
     delete[] alpha ;
   }
 
+  // Delete OT stuff
+  delete ot1 ;
+  delete ot2 ;
+  delete io ;
   return 0 ;
 }
