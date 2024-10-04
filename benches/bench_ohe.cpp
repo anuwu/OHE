@@ -67,14 +67,20 @@ int main(int argc, char** argv) {
 
   if (batched) {
     // Declare and initialize
-    block **ohes ;
+    block **ohes, **alphas ;
+    alphas = new block*[batch_size] ;
+    for (int b = 0 ; b < batch_size ; b++) {
+      alphas[b] = new block[1] ;
+      initialize_blocks(alphas[b], 1) ;
+    }
+      
     
     // Get OHEs
     auto start_exp = clock_start(); 
     if (prot_type == "ohe")
-      ohes = batched_random_ohe(party, n, batch_size, ot1, ot2, true) ;
+      ohes = batched_random_ohe(party, n, batch_size, ot1, ot2, alphas, true) ;
     else if (prot_type == "gmt")
-      ohes = batched_random_gmt(party, n, batch_size, ot1, ot2, true) ;
+      ohes = batched_random_gmt(party, n, batch_size, ot1, ot2, alphas, true) ;
     else {
       cerr << "Incorrect OT type\n" ;
       exit(EXIT_FAILURE) ;
@@ -83,16 +89,23 @@ int main(int argc, char** argv) {
     comm_var = io->counter - comm_var ;
 
     // Delete
-    for (int b = 0 ; b < batch_size ; b++)
+    for (int b = 0 ; b < batch_size ; b++) {
       delete[] ohes[b] ;
+      delete[] alphas[b] ;
+    }
+      
     delete[] ohes ;
+    delete[] alphas ;
 
     // Print things
     setprecision(5) ;  
     cout << fixed << setprecision(5) << "Time taken : " << double(t_exp)/(1e3*batch_size) << " ms\n" ;
   }
   else {
-    block *ohe ;
+    block *ohe, *alpha ;
+    alpha = new block[1] ;
+    initialize_blocks(alpha, 1) ;
+
     /************************* Dummy stuff *************************/
 
     // block *b1 = new block[100] ;
@@ -123,9 +136,9 @@ int main(int argc, char** argv) {
     int reps = 1 ;
     for (int i = 0 ; i < reps ; i++) {
       if (prot_type == "ohe")
-        ohe = random_ohe(party, n, ot1, ot2, true) ;
+        ohe = random_ohe(party, n, ot1, ot2, alpha, true) ;
       else if (prot_type == "gmt")
-        ohe = random_gmt(party, n, ot1, ot2, true) ;
+        ohe = random_gmt(party, n, ot1, ot2, alpha, true) ;
       else {
         cerr << "Incorrect protocol type\n" ;
         exit(EXIT_FAILURE) ;
@@ -137,6 +150,7 @@ int main(int argc, char** argv) {
 
     // Delete
     delete[] ohe ; 
+    delete[] alpha ;
   }
 
   return 0 ;

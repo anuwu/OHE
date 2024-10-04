@@ -84,7 +84,7 @@ LUT input_lut(int n, int m, string lut_path) {
   return lut ;
 }
 
-void eval_lut(int n, LUT &lut, block *vec, block *output) {
+void eval_lut(int n, LUT &lut, block *ohe, block *output) {
   if (n != lut.n) {
     cerr << "Incompatible size of OHE (" << n << ") and LUT input size (" << lut.n << ")\n" ;
     exit(EXIT_FAILURE) ;
@@ -101,32 +101,32 @@ void eval_lut(int n, LUT &lut, block *vec, block *output) {
 
   // Do the product
   block *tmp = new block[m_blocks] ;
-  block *vec_t = new block[m_blocks] ;
+  block *ohe_t = new block[m_blocks] ;
   initialize_blocks(tmp, m_blocks) ;
   for (uint64_t i = 0 ; i < N ; i++) {
     // Replicate OHE at index i, m times
     block rep_block, rest_rep_block ;
-    if (TEST_BIT(vec, i)) {
+    if (TEST_BIT(ohe, i)) {
       rep_block = all_one_block ;
       rest_rep_block = one_rest ;
     } else {
       rep_block = zero_block ;
       rest_rep_block = zero_block ;
     }
-    initialize_blocks(vec_t, m_blocks-1, rep_block) ;
-    vec_t[m_blocks-1] = rest_rep_block ;
+    initialize_blocks(ohe_t, m_blocks-1, rep_block) ;
+    ohe_t[m_blocks-1] = rest_rep_block ;
 
     // XOR accumulate into res
-    andBlocks_arr(tmp, vec_t, lut.table[i], m_blocks) ;
+    andBlocks_arr(tmp, ohe_t, lut.table[i], m_blocks) ;
     xorBlocks_arr(output, tmp, m_blocks) ;
   }
 
   // Delete and return
   delete[] tmp ;
-  delete[] vec_t ;
+  delete[] ohe_t ;
 }
 
-void eval_lut_with_rot(int n, LUT &lut, block *vec, uint64_t rot, block *output) {
+void eval_lut_with_rot(int n, LUT &lut, block *ohe, uint64_t rot, block *output) {
   if (n != lut.n) {
     cerr << "Incompatible size of OHE (" << n << ") and LUT input size (" << lut.n << ")\n" ;
     exit(EXIT_FAILURE) ;
@@ -143,32 +143,32 @@ void eval_lut_with_rot(int n, LUT &lut, block *vec, uint64_t rot, block *output)
 
   // Do the product
   block *tmp = new block[m_blocks] ;
-  block *vec_t = new block[m_blocks] ;
+  block *ohe_t = new block[m_blocks] ;
   initialize_blocks(tmp, m_blocks) ;
   for (uint64_t i = 0 ; i < N ; i++) {
     // Replicate OHE at index i, m times
     block rep_block, rest_rep_block ;
-    if (TEST_BIT(vec, i^rot)) {
+    if (TEST_BIT(ohe, i^rot)) {
       rep_block = all_one_block ;
       rest_rep_block = one_rest ;
     } else {
       rep_block = zero_block ;
       rest_rep_block = zero_block ;
     }
-    initialize_blocks(vec_t, m_blocks-1, rep_block) ;
-    vec_t[m_blocks-1] = rest_rep_block ;
+    initialize_blocks(ohe_t, m_blocks-1, rep_block) ;
+    ohe_t[m_blocks-1] = rest_rep_block ;
 
     // XOR accumulate into res
-    andBlocks_arr(tmp, vec_t, lut.table[i], m_blocks) ;
+    andBlocks_arr(tmp, ohe_t, lut.table[i], m_blocks) ;
     xorBlocks_arr(output, tmp, m_blocks) ;
   }
 
   // Delete and return
   delete[] tmp ;
-  delete[] vec_t ;
+  delete[] ohe_t ;
 }
 
-void secure_eval(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, LUT &lut, block *inp, block *ohe, block *output) {
+void secure_eval(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, LUT &lut, block *inp, block *ohe, block *alpha, block *output) {
   // Error message
   if (n != lut.n) {
     cerr << "Incompatible size of OHE (" << n << ") and LUT input size (" << lut.n << ")\n" ;
@@ -179,11 +179,6 @@ void secure_eval(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, LUT &lut, b
   int m = lut.m ;
   int m_blocks = (m+127)/128 ;
  
-  // f(identity) * H(a) = a
-  LUT id = identity(n) ;
-  block *alpha = new block[1] ; initialize_blocks(alpha, 1) ;
-  eval_lut(n, id, ohe, alpha) ; 
-
   // Compute x+a
   block *masked_inp = new block[1] ;
   xorBlocks_arr(masked_inp, inp, alpha, 1) ;
@@ -200,28 +195,23 @@ void secure_eval(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, LUT &lut, b
   reconst(party, ot1, ot2, lut.m, otp_share, output) ;
 
   // Delete stuff
-  delete[] alpha ;
+  // delete[] alpha ;
   delete[] masked_inp ;
   delete[] reconst_masked_inp ;
   delete[] otp_share ;
 }
 
-void batched_secure_eval(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, LUT &lut, block *inp, block **ohes, block **outputs) {
+void batched_secure_eval(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, LUT &lut, block *inp, block **ohes, block **alphas, block **outputs) {
   // Error message
   if (n != lut.n) {
     cerr << "Incompatible size of OHE (" << n << ") and LUT input size (" << lut.n << ")\n" ;
     exit(EXIT_FAILURE) ;
   }
 
-  // f(identity) * H(a) = a
-  LUT id = identity(n) ;
-  block *alpha = new block[batch_size] ; initialize_blocks(alpha, batch_size) ;
-  for (int b = 0 ; b < batch_size ; b++)
-    eval_lut(n, id, ohes[b], alpha+b) ;
-
   // Compute x+a
   block *masked_inp = new block[batch_size] ; initialize_blocks(masked_inp, batch_size) ;
-  xorBlocks_arr(masked_inp, inp, alpha, batch_size) ;
+  for (int b = 0 ; b < batch_size ; b++)
+    xorBlocks_arr(masked_inp+b, inp+b, alphas[b], 1) ;
 
   // Send and receive shares of (x+a)
   int msg_flat_blocks = (n*batch_size+127)/128 ;
@@ -244,7 +234,7 @@ void batched_secure_eval(int party, int n, int batch_size, COT<NetIO> *ot1, COT<
     reconst(party, ot1, ot2, lut.m, otp_share+b, outputs[b]) ;
 
   // Delete stuff
-  delete[] alpha ;
+  // delete[] alpha ;
   delete[] masked_inp ;
   delete[] msg_flat ;
   delete[] reconst_msg_flat ;

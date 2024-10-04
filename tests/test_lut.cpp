@@ -209,11 +209,13 @@ void test5(int argc, char **argv) {
     func = input_lut(n, m, "../../luts/" + lut_name + ".lut") ;
 
   // Get OHE
-  block *ohe ;
+  block *ohe, *alpha ;
+  alpha = new block[1] ;
+  initialize_blocks(alpha, 1) ;
   if (prot_type == "ohe")
-    ohe = random_ohe(party, n, ot1, ot2) ;
+    ohe = random_ohe(party, n, ot1, ot2, alpha) ;
   else if (prot_type == "gmt")
-    ohe = random_gmt(party, n, ot1, ot2) ;
+    ohe = random_gmt(party, n, ot1, ot2, alpha) ;
   else {
     cerr << "Incorrect protocol type\n" ;
     exit(EXIT_FAILURE) ;
@@ -221,7 +223,7 @@ void test5(int argc, char **argv) {
 
   // Do secure evaluation
   block *reconst_otp = new block[m_blocks] ; initialize_blocks(reconst_otp, m_blocks) ;
-  secure_eval(party, n, ot1, ot2, func, inp_share, ohe, reconst_otp) ;
+  secure_eval(party, n, ot1, ot2, func, inp_share, ohe, alpha, reconst_otp) ;
 
   // Check validity
   block *reconst_inp = new block[1] ; initialize_blocks(reconst_inp, 1) ;
@@ -245,6 +247,7 @@ void test5(int argc, char **argv) {
   // Delete stuff
   delete[] inp_share ;
   delete[] ohe ;
+  delete[] alpha ;
   delete[] reconst_otp ;
   delete[] reconst_inp ;
   delete[] reconst_inp_ohe ;
@@ -312,11 +315,17 @@ void test6(int argc, char **argv) {
     func = input_lut(n, m, "../../luts/" + lut_name + ".lut") ;
   
   // Get OHE
-  block **ohes ;
+  block **ohes, **alphas ;
+  alphas = new block*[batch_size] ;
+  for (int b = 0 ; b < batch_size ; b++) {
+    alphas[b] = new block[1] ;
+    initialize_blocks(alphas[b], 1) ;
+  }
+    
   if (prot_type == "ohe")
-    ohes = batched_random_ohe(party, n, batch_size, ot1, ot2) ;
+    ohes = batched_random_ohe(party, n, batch_size, ot1, ot2, alphas) ;
   else if (prot_type == "gmt")
-    ohes = batched_random_gmt(party, n, batch_size, ot1, ot2) ;
+    ohes = batched_random_gmt(party, n, batch_size, ot1, ot2, alphas) ;
   else {
     cerr << "Incorrect protocol type\n" ;
     exit(EXIT_FAILURE) ;
@@ -328,7 +337,7 @@ void test6(int argc, char **argv) {
     reconst_otps[b] = new block[m_blocks] ;
     initialize_blocks(reconst_otps[b], m_blocks) ;
   }
-  batched_secure_eval(party, n, batch_size, ot1, ot2, func, inp_share, ohes, reconst_otps) ;
+  batched_secure_eval(party, n, batch_size, ot1, ot2, func, inp_share, ohes, alphas, reconst_otps) ;
     
   // Check validity
   block *reconst_inp = new block[batch_size] ; initialize_blocks(reconst_inp, batch_size) ;
@@ -365,12 +374,14 @@ void test6(int argc, char **argv) {
   // Delete stuff
   for (int b = 0 ; b < batch_size ; b++) {
     delete[] ohes[b] ;
+    delete[] alphas[b] ;
     delete[] reconst_otps[b] ;
     delete[] reconst_inp_ohes[b] ;
     delete[] clear_otps[b] ;
   }
   delete[] inp_share ;
   delete[] ohes ;
+  delete[] alphas ;
   delete[] reconst_inp ;
   delete[] reconst_otps ;
   delete[] reconst_inp_ohes ;

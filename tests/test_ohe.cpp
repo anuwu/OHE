@@ -109,14 +109,20 @@ int main(int argc, char** argv) {
     // Declare and initialize
     int batch_size = 128 ;
     int num_blocks = get_ohe_blocks(n) ;
-    block **ohes ;
+    block **ohes, **alphas ;
     block *rec ;
+    alphas = new block*[batch_size] ;
+    for (int b = 0 ; b < batch_size ; b++) {
+      alphas[b] = new block[1] ;
+      initialize_blocks(alphas[b], 1) ;
+    }
+      
     
     // Get OHEs
     if (prot_type == "ohe")
-      ohes = batched_random_ohe(party, n, batch_size, ot1, ot2) ;
+      ohes = batched_random_ohe(party, n, batch_size, ot1, ot2, alphas) ;
     else if (prot_type == "gmt")
-      ohes = batched_random_gmt(party, n, batch_size, ot1, ot2) ;
+      ohes = batched_random_gmt(party, n, batch_size, ot1, ot2, alphas) ;
     else {
       cerr << "Incorrect protocol type\n" ;
       exit(EXIT_FAILURE) ;
@@ -149,13 +155,19 @@ int main(int argc, char** argv) {
       cout << "\033[1;31m" << "Failed " << " --> " << correct << "\033[0m\n" ;
 
     // Delete
-    for (int b = 0 ; b < batch_size ; b++)
+    for (int b = 0 ; b < batch_size ; b++) {
       delete[] ohes[b] ;
+      delete[] alphas[b] ;
+    }
+      
     delete[] ohes ;
+    delete[] alphas ;
   }
   else {
     // Declare and initialize
-    block *ohe, *rec ;
+    block *ohe, *rec, *alpha ;
+    alpha = new block[1] ;
+    initialize_blocks(alpha, 1) ;
     int correct = 0 ;
     int num_blocks = get_ohe_blocks(n) ;
 
@@ -163,9 +175,9 @@ int main(int argc, char** argv) {
     int no_tests = min(100, 10 * (1 << n)) ;
     for (int counter = 0 ; counter < no_tests ; counter++) {
       if (prot_type == "ohe")
-        ohe = random_ohe(party, n, ot1, ot2) ;
+        ohe = random_ohe(party, n, ot1, ot2, alpha) ;
       else if (prot_type == "gmt")
-        ohe = random_gmt(party, n, ot1, ot2) ;
+        ohe = random_gmt(party, n, ot1, ot2, alpha) ;
       else {
         cout << "Incorrect OT type\n" ;
         exit(EXIT_FAILURE) ;
@@ -185,7 +197,9 @@ int main(int argc, char** argv) {
       if (no_set == 1)
         correct++ ;
 
-      delete[] ohe ; delete[] rec ;
+      delete[] ohe ; 
+      delete[] rec ;
+      delete[] alpha ;
     }
 
     // Print things

@@ -5,7 +5,7 @@
 using namespace std ;
 using namespace emp ;
 
-block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print_comm) {
+block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alpha, bool print_comm) {
   /************************* Base Case *************************/
 
   // Declare
@@ -16,6 +16,9 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
 
   // Initialize
   prg.random_bool(b, n) ;
+  for (int i = 0 ; i < n ; i++)
+    if (b[i])
+      SET_BIT(alpha, i) ;
   for (int i = 0 ; i < num_blocks ; i++) 
     ohe[i] = zero_block ;
   if (party == ALICE) {
@@ -151,7 +154,7 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
   return ohe ;
 }
 
-block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print_comm) {
+block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alpha, bool print_comm) {
   /************************* Base Case *************************/
 
   // Declare
@@ -162,6 +165,8 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
 
   // Initialize
   prg.random_bool(single_bools, n) ;
+  for (int i = 0 ; i < n ; i++)
+    SET_BIT(alpha, i) ;
   initialize_blocks(ohe, num_blocks) ;
 
   // Handle base case
@@ -356,7 +361,7 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print
   return ohe ;
 }
 
-block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print_comm) {
+block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, block **alphas, bool print_comm) {
   /************************* Base Case *************************/
 
   // Declare
@@ -367,6 +372,9 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
 
   // Initialize
   prg.random_bool(first_bools, batch_size) ;
+  for (int b = 0 ; b < batch_size ; b++)
+    if(first_bools[b])
+      SET_BIT(alphas[b], 0) ;
   for (int b = 0 ; b < batch_size ; b++) {
     ohes[b] = new block[num_blocks] ;
     initialize_blocks(ohes[b], num_blocks) ;
@@ -397,6 +405,10 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   block *rcv_ots = new block[batch_size*(n-1)] ;
   bool *bs = new bool[batch_size*(n-1)] ;
   prg.random_bool(bs, batch_size*(n-1)) ;
+  for (int b = 0 ; b < batch_size ; b++)
+    for (int i = 0 ; i < n-1 ; i++)
+      if (bs[b*(n-1)+i])
+        SET_BIT(alphas[b], i+1) ;
 
   /************************* Perform Random OTs *************************/
 
@@ -555,7 +567,7 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   return ohes ;
 }
 
-block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, bool print_comm) {
+block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, block **alphas, bool print_comm) {
   /************************* Base Case *************************/
 
   // Declare
@@ -570,6 +582,9 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
     initialize_blocks(ohes[b], num_blocks) ;
     single_bools[b] = new bool[n] ;
     prg.random_bool(single_bools[b], n) ;
+    for (int i = 0 ; i < n ; i++)
+      if (single_bools[b][i])
+        SET_BIT(alphas[b], i) ;
   }
 
   // Handle Base Case
