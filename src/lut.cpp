@@ -103,7 +103,11 @@ void LUT::eval_lut_with_rot(int n, block *ohe, uint64_t rot, block *output) {
   delete[] ohe_t ;
 }
 
-void LUT::secure_eval(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *inp, block *ohe, block *alpha, block *output) {
+void LUT::secure_eval(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *inp, block *ohe, block *alpha, block *output, bool measure) {
+  // Start measurement counters
+  long long running_time ;
+  uint64_t running_comms = ot1->io->counter ;
+
   // Error message
   if (n != this->n) {
     cerr << "Incompatible size of OHE (" << n << ") and LUT input size (" << this->n << ")\n" ;
@@ -118,8 +122,18 @@ void LUT::secure_eval(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block 
   xorBlocks_arr(masked_inp, inp, alpha, 1) ;
 
   // Send and receive shares of (x+a)
+  auto start_exp = clock_start() ;
   block *reconst_masked_inp = new block[1] ; initialize_blocks(reconst_masked_inp, 1) ;
   reconst(party, ot1, ot2, n, masked_inp, reconst_masked_inp) ;
+
+  // Print stuff
+  running_time = time_from(start_exp) ;
+  if (measure) {
+    cout << fixed << setprecision(MEASUREMENT_PRECISION) << "Opening time : " << running_time/1e3 << " ms\n" ;
+    cout << "Opening comms : " << (ot1->io->counter - running_comms) << " bytes\n" ;
+  } 
+  running_comms = ot1->io->counter ;
+  start_exp = clock_start() ;
 
   // f(T) * H(x) = f(t) with rotation
   block *otp_share = new block[m_blocks] ; initialize_blocks(otp_share, m_blocks) ;
@@ -128,13 +142,26 @@ void LUT::secure_eval(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block 
   // Send and receive f(t)
   reconst(party, ot1, ot2, this->m, otp_share, output) ;
 
+  // End measurement for evaluation
+  running_time = time_from(start_exp) ;
+
   // Delete stuff
   delete[] masked_inp ;
   delete[] reconst_masked_inp ;
   delete[] otp_share ;
+
+  // Print stuff
+  if (measure) {
+    cout << fixed << setprecision(MEASUREMENT_PRECISION) << "Eval time : " << running_time/1e3 << " ms\n" ;
+    cout << "Eval comms : " << (ot1->io->counter - running_comms) << " bytes\n" ;
+  } 
 }
 
-void LUT::batched_secure_eval(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, block **inps, block **ohes, block **alphas, block **outputs) {
+void LUT::batched_secure_eval(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, block **inps, block **ohes, block **alphas, block **outputs, bool measure) {
+  // Start measurement operators
+  long long running_time ;
+  uint64_t running_comms = ot1->io->counter ;
+
   // Error message
   if (n != this->n) {
     cerr << "Incompatible size of OHE (" << n << ") and LUT input size (" << this->n << ")\n" ;
@@ -153,12 +180,22 @@ void LUT::batched_secure_eval(int party, int n, int batch_size, COT<NetIO> *ot1,
   }
 
   // Send and receive shares of (x+a)
+  auto start_exp = clock_start() ;
   block **reconst_masked_inps = new block*[batch_size] ;
   for (int b = 0 ; b < batch_size ; b++) {
     reconst_masked_inps[b] = new block[1] ;
     initialize_blocks(reconst_masked_inps[b], 1) ;
     reconst(party, ot1, ot2, n, masked_inps[b], reconst_masked_inps[b]) ;
   }
+
+  // Print stuff
+  running_time = time_from(start_exp) ;
+  if (measure) {
+    cout << fixed << setprecision(MEASUREMENT_PRECISION) << "Opening time : " << running_time/1e3 << " ms\n" ;
+    cout << "Opening comms : " << (ot1->io->counter - running_comms) << " bytes\n" ;
+  } 
+  running_comms = ot1->io->counter ;
+  start_exp = clock_start() ;
 
   // f(T) * H(x) = f(t) with rotation
   block **otp_shares = new block*[batch_size] ; 
@@ -172,6 +209,9 @@ void LUT::batched_secure_eval(int party, int n, int batch_size, COT<NetIO> *ot1,
   for (int b = 0 ; b < batch_size ; b++)
     reconst(party, ot1, ot2, this->m, otp_shares[b], outputs[b]) ;
 
+  // End measurement for evaluation
+  running_time = time_from(start_exp) ;
+
   // Delete stuff
   for (int b = 0 ; b < batch_size ; b++) {
     delete[] masked_inps[b] ;
@@ -181,6 +221,12 @@ void LUT::batched_secure_eval(int party, int n, int batch_size, COT<NetIO> *ot1,
   delete[] masked_inps ;
   delete[] reconst_masked_inps ;
   delete[] otp_shares ;
+
+  // Print stuff
+  if (measure) {
+    cout << fixed << setprecision(MEASUREMENT_PRECISION) << "Eval time : " << running_time/1e3 << " ms\n" ;
+    cout << "Eval comms : " << (ot1->io->counter - running_comms) << " bytes\n" ;
+  } 
 }
 
 LUT identity (int n) {

@@ -82,10 +82,10 @@ public :
   void eval_lut_with_rot(int n, block *ohe, uint64_t rot, block *output) ;
 
   // Secure eval
-  void secure_eval(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *inp, block *ohe, block *alpha, block *output) ;
+  void secure_eval(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *inp, block *ohe, block *alpha, block *output, bool measure=false) ;
 
   // Batched secure eval
-  void batched_secure_eval(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, block **inps, block **ohes, block **alphas, block **outputs) ;
+  void batched_secure_eval(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, block **inps, block **ohes, block **alphas, block **outputs, bool measure=false) ;
 } ;
 
 // Generate identity truth table

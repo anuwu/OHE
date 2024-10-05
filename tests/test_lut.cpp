@@ -224,8 +224,16 @@ void test5(int argc, char **argv) {
   }
 
   // Do secure evaluation
+  auto start_exp = clock_start() ;
+  uint64_t comm_var = io->counter ; 
   block *reconst_otp = new block[m_blocks] ; initialize_blocks(reconst_otp, m_blocks) ;
-  func.secure_eval(party, n, ot1, ot2, inp_share, ohe, alpha, reconst_otp) ;
+  func.secure_eval(party, n, ot1, ot2, inp_share, ohe, alpha, reconst_otp, true) ;
+
+  // Print stuff
+  long long t_exp = time_from(start_exp);  
+  comm_var = io->counter - comm_var ;
+  cout << fixed << setprecision(5) << "Total time : " << double(t_exp)/1e3 << " ms\n" ;
+  cout << "Total Comms : " << comm_var << " bytes\n" ;
 
   // Check validity
   block *reconst_inp = new block[1] ; initialize_blocks(reconst_inp, 1) ;
@@ -335,7 +343,6 @@ void test6(int argc, char **argv) {
     alphas[b] = new block[1] ;
     initialize_blocks(alphas[b], 1) ;
   }
-    
   if (prot_type == "ohe")
     ohes = batched_random_ohe(party, n, batch_size, ot1, ot2, alphas) ;
   else if (prot_type == "gmt")
@@ -353,13 +360,12 @@ void test6(int argc, char **argv) {
     reconst_otps[b] = new block[m_blocks] ;
     initialize_blocks(reconst_otps[b], m_blocks) ;
   }
-  func.batched_secure_eval(party, n, batch_size, ot1, ot2, inp_shares, ohes, alphas, reconst_otps) ;
+  func.batched_secure_eval(party, n, batch_size, ot1, ot2, inp_shares, ohes, alphas, reconst_otps, true) ;
 
-  long long t_exp = time_from(start_exp);  
+  long long t_exp = time_from(start_exp) ;  
   comm_var = io->counter - comm_var ;
-
-  cout << "Comms : " << comm_var << " bytes\n" ;
-  cout << fixed << setprecision(5) << "Time taken : " << double(t_exp)/(1e3*batch_size) << " ms\n" ;
+  cout << fixed << setprecision(5) << "Total time : " << double(t_exp)/(1e3*batch_size) << " ms\n" ;
+  cout << "Total Comms : " << comm_var << " bytes\n" ;
     
   // Check validity
   block *reconst_inp = new block[batch_size] ; initialize_blocks(reconst_inp, batch_size) ;
