@@ -2,7 +2,7 @@
 
 if [[ $# == 1 ]] then
   if [ "$1" = "--help" ] ; then
-    printf "$0 <party> <port> <iknp/ferret> <ohe/gmt> <batch_size> <start> <end> \n"
+    printf "$0 <party> <port> <iknp/ferret> <ohe/gmt> <batch_size> <start> <end>\n"
     exit ;
   else
     printf "Run '$0 --help' for menu\n"
@@ -20,5 +20,5 @@ fi
 for n in $(seq $6 $7);
 do
   printf "n = $n\n" 
-  ./../build/bin/bench_ohe $1 $2 $n $3 $4 1 $5
+  ./../build/bin/verify_lut $1 $2 $n $n $3 $4 id 1 $5
 done

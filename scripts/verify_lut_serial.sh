@@ -20,5 +20,5 @@ fi
 for n in $(seq $5 $6);
 do
   printf "n = $n\n" 
-  ./../build/bin/verify_ohe $1 $2 $n $3 $4 0
+  ./../build/bin/verify_lut $1 $2 $n $n $3 $4 id 0
 done

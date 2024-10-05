@@ -118,63 +118,31 @@ int main(int argc, char** argv) {
     }
 
     // Batched Secure evaluation
+    auto start_exp = clock_start() ;
+    uint64_t comm_var = io->counter ; 
     block **reconst_otps = new block*[batch_size] ;
     for (int b = 0 ; b < batch_size ; b++) {
       reconst_otps[b] = new block[m_blocks] ;
       initialize_blocks(reconst_otps[b], m_blocks) ;
     }
-    func.batched_secure_eval(party, n, batch_size, ot1, ot2, inp_shares, ohes, alphas, reconst_otps) ;
-      
-    // Check validity
-    block **reconst_inps = new block*[batch_size] ;
-    block **reconst_inp_ohes = new block*[batch_size] ;
-    block **clear_otps = new block*[batch_size] ;
-    bool all_flag = true ;
-    int corr = 0 ;
-    for (int b = 0 ; b < batch_size ; b++) {
-      reconst_inps[b] = new block[1] ; initialize_blocks(reconst_inps[b], 1) ;
-      reconst(party, ot1, ot2, n, inp_shares[b], reconst_inps[b]) ;
-      reconst_inp_ohes[b] = new block[num_blocks] ; initialize_blocks(reconst_inp_ohes[b], num_blocks) ;
-      get_ohe_from_plain(reconst_inps[b], reconst_inp_ohes[b]) ;
-      clear_otps[b] = new block[m_blocks] ; initialize_blocks(clear_otps[b], m_blocks) ;
-      func.eval_lut(n, reconst_inp_ohes[b], clear_otps[b]) ;
+    func.batched_secure_eval(party, n, batch_size, ot1, ot2, inp_shares, ohes, alphas, reconst_otps, true) ;
 
-      bool flag_batch = true ; 
-      for (int m = 0 ; m < m_blocks ; m++) {
-        if (!check_equal(clear_otps[b]+m, reconst_otps[b]+m)) {
-          flag_batch = false ;
-          break ;
-        }
-      }
-
-      if (!flag_batch)
-        all_flag = false ;
-      else
-        corr++ ;
-    }
-    
-    if (all_flag) 
-      cout << "\033[1;32m" << "Passed" << "\033[0m\n" ;
-    else
-      cout << "\033[1;31m" << "Failed --> " << corr << "\033[0m\n" ;
-
+    long long t_exp = time_from(start_exp) ;  
+    comm_var = io->counter - comm_var ;
+    cout << fixed << setprecision(5) << "Total time : " << double(t_exp)/(1e3*batch_size) << " ms\n" ;
+    cout << "Total Comms : " << comm_var << " bytes\n" ;
+          
     // Delete stuff
     for (int b = 0 ; b < batch_size ; b++) {
       delete[] inp_shares[b] ;
       delete[] ohes[b] ;
       delete[] alphas[b] ;
       delete[] reconst_otps[b] ;
-      delete[] reconst_inps[b] ;
-      delete[] reconst_inp_ohes[b] ;
-      delete[] clear_otps[b] ;
     }
     delete[] inp_shares ;
     delete[] ohes ;
     delete[] alphas ;
     delete[] reconst_otps ;
-    delete[] reconst_inps ;
-    delete[] reconst_inp_ohes ;
-    delete[] clear_otps ; 
   } else {
     // Initializing stuff
     block *inp_share = new block[1] ;
@@ -197,35 +165,22 @@ int main(int argc, char** argv) {
     }
 
     // Do secure evaluation
+    auto start_exp = clock_start() ;
+    uint64_t comm_var = io->counter ; 
     block *reconst_otp = new block[m_blocks] ; initialize_blocks(reconst_otp, m_blocks) ;
+    func.secure_eval(party, n, ot1, ot2, inp_share, ohe, alpha, reconst_otp, true) ;
 
-    // Check validity
-    block *reconst_inp = new block[1] ; initialize_blocks(reconst_inp, 1) ;
-    reconst(party, ot1, ot2, n, inp_share, reconst_inp) ;
-    block *reconst_inp_ohe = new block[num_blocks] ; initialize_blocks(reconst_inp_ohe, num_blocks) ;
-    get_ohe_from_plain(reconst_inp, reconst_inp_ohe) ;
-    block *clear_otp = new block[m_blocks] ; initialize_blocks(clear_otp, m_blocks) ;
-    func.eval_lut(n, reconst_inp_ohe, clear_otp) ;
-    bool flag = true ;
-    for (int i = 0 ; i < m_blocks ; i++) {
-      if (!check_equal(clear_otp+i, reconst_otp+i)) {
-        flag = false ;
-        break ;
-      }
-    }
-    if (flag) 
-      cout << "\033[1;32m" << "Passed" << "\033[0m\n" ;
-    else
-      cout << "\033[1;31m" << "Failed" << "\033[0m\n" ;
+    // Print stuff
+    long long t_exp = time_from(start_exp);  
+    comm_var = io->counter - comm_var ;
+    cout << fixed << setprecision(5) << "Total time : " << double(t_exp)/1e3 << " ms\n" ;
+    cout << "Total Comms : " << comm_var << " bytes\n" ;
 
     // Delete stuff
     delete[] inp_share ;
     delete[] ohe ;
     delete[] alpha ;
     delete[] reconst_otp ;
-    delete[] reconst_inp ;
-    delete[] reconst_inp_ohe ;
-    delete[] clear_otp ; 
   }
 
   // Delete OT stuff
