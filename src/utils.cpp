@@ -330,3 +330,37 @@ void rotate(int n, block *vec, uint64_t rot, block *vec_rotated) {
     if (TEST_BIT(vec, i))
       SET_BIT(vec_rotated, i^rot) ;
 }
+
+void get_conv_metadata(
+  int n, 
+  unordered_map<int, 
+  vector<vector<int>>> &mp, 
+  unordered_map<int, int> &singleton_gmt, 
+  unordered_map<int, int> &remaining_gmt, 
+  vector<int> &conv_left, vector<int> &conv_right1, 
+  vector<vector<int>> &conv_right2) {
+  // Populate metadata
+  mp = get_subsets(n) ;
+  for (int i = 1 ; i < n+1 ; i++) {
+    for (int j = 0 ; j < (int)mp[i].size() ; j++) {
+      vector<int> vec = mp[i][j] ;
+      int totrnk = total_rank(vec, n) ;
+      singleton_gmt[totrnk] = vec[0] ; 
+      vector<int> cop = vec ; cop.erase(cop.begin()) ; 
+      int remrnk = total_rank(cop, n) ;
+      remaining_gmt[totrnk] = remrnk ;
+
+      int rem_ohe_index = 0, ohe_index ;
+      for (auto it1 = cop.begin() ; it1 != cop.end() ; it1++)
+        rem_ohe_index += 1 << *it1 ;
+      ohe_index = rem_ohe_index + (1 << vec[0]) ;
+
+      ohe_index = (1 << n) - ohe_index - 1 ;
+      rem_ohe_index = (1 << n) - rem_ohe_index - 1 ;
+      vector<int> ranks = get_ohe_ranks(cop, n, vec[0]) ;
+      conv_left.push_back(ohe_index) ;
+      conv_right1.push_back(rem_ohe_index) ;
+      conv_right2.push_back(ranks) ;
+    }
+  }
+}

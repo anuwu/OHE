@@ -18,7 +18,6 @@ ostream& operator<<(ostream &os, const LUT &lut) {
   return os ;
 }
 
-
 void LUT::eval_lut(int n, block *ohe, block *output) {
   if (n != this->n) {
     cerr << "Incompatible size of OHE (" << n << ") and LUT input size (" << this->n << ")\n" ;

@@ -252,4 +252,13 @@ void reconst(int party, COT<NetIO> *ot1, COT<NetIO> *ot2, int bits, block *share
 
 void rotate(int n, block *vec, uint64_t rot, block *vec_rotated) ;
 
+void get_conv_metadata(
+  int n, 
+  unordered_map<int, 
+  vector<vector<int>>> &mp, 
+  unordered_map<int, int> &singleton_gmt, 
+  unordered_map<int, int> &remaining_gmt, 
+  vector<int> &conv_left, vector<int> &conv_right1, 
+  vector<vector<int>> &conv_right2) ;
+
 #endif
