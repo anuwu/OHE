@@ -1,9 +1,6 @@
 add_executable(test_utils "test_utils.cpp")
 target_link_libraries(test_utils EMP-OHE)
 
-add_executable(test_ohe "test_ohe.cpp")
-target_link_libraries(test_ohe EMP-OHE)
-
 add_executable(test_coord "test_coord.cpp")
 target_link_libraries(test_coord EMP-OHE)
 

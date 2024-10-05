@@ -22,5 +22,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Add subdirectories
 add_subdirectory(src)
-add_subdirectory(benches)
 add_subdirectory(tests)
+add_subdirectory(verify)
+add_subdirectory(benches)

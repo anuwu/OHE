@@ -9,7 +9,41 @@ void get_ohe_from_plain(block *inp, block *ohe) {
   SET_BIT(ohe, ((uint64_t*)inp)[0]) ;
 }
 
-block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alpha, bool measure) {
+void get_conv_metadata(
+  int n, 
+  unordered_map<int, 
+  vector<vector<int>>> &mp, 
+  unordered_map<int, int> &singleton_gmt, 
+  unordered_map<int, int> &remaining_gmt, 
+  vector<int> &conv_left, vector<int> &conv_right1, 
+  vector<vector<int>> &conv_right2) {
+  // Populate metadata
+  mp = get_subsets(n) ;
+  for (int i = 1 ; i < n+1 ; i++) {
+    for (int j = 0 ; j < (int)mp[i].size() ; j++) {
+      vector<int> vec = mp[i][j] ;
+      int totrnk = total_rank(vec, n) ;
+      singleton_gmt[totrnk] = vec[0] ; 
+      vector<int> cop = vec ; cop.erase(cop.begin()) ; 
+      int remrnk = total_rank(cop, n) ;
+      remaining_gmt[totrnk] = remrnk ;
+
+      int rem_ohe_index = 0, ohe_index ;
+      for (auto it1 = cop.begin() ; it1 != cop.end() ; it1++)
+        rem_ohe_index += 1 << *it1 ;
+      ohe_index = rem_ohe_index + (1 << vec[0]) ;
+
+      ohe_index = (1 << n) - ohe_index - 1 ;
+      rem_ohe_index = (1 << n) - rem_ohe_index - 1 ;
+      vector<int> ranks = get_ohe_ranks(cop, n, vec[0]) ;
+      conv_left.push_back(ohe_index) ;
+      conv_right1.push_back(rem_ohe_index) ;
+      conv_right2.push_back(ranks) ;
+    }
+  }
+}
+
+void random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alpha, block *ohe, bool measure) {
   // Start measurement counters
   long long running_time ;
   uint64_t running_comms = ot1->io->counter ;
@@ -20,7 +54,6 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alp
   PRG prg ;
   int num_blocks = get_ohe_blocks(n) ;
   bool *b = new bool[n] ; 
-  block *ohe = new block[num_blocks] ;
 
   // Initialize
   prg.random_bool(b, n) ;
@@ -47,7 +80,6 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alp
       cout << "Corr time : 0 ms\n" ;
       cout << "Corr comms : 0 bytes\n" ;
     }
-    return ohe ;
   }
 
   /************************* Declare *************************/
@@ -173,12 +205,9 @@ block* random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alp
     cout << fixed << setprecision(MEASUREMENT_PRECISION) << "Corr time : " << running_time/1e3 << " ms\n" ;
     cout << "Corr comms : " << (ot1->io->counter - running_comms) << " bytes\n" ;
   } 
-
-  // Return
-  return ohe ;
 }
 
-block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alpha, bool measure) {
+void random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alpha, block *ohe, bool measure) {
   // Start measurement counters
   long long running_time ;
   uint64_t running_comms = ot1->io->counter ;
@@ -189,13 +218,11 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alp
   PRG prg ;
   int num_blocks = get_ohe_blocks(n) ;
   bool *single_bools = new bool[n] ;
-  block *ohe = new block[num_blocks] ;
 
   // Initialize
   prg.random_bool(single_bools, n) ;
   for (int i = 0 ; i < n ; i++)
     SET_BIT(alpha, i) ;
-  initialize_blocks(ohe, num_blocks) ;
 
   // Handle base case
   if (n == 1) {
@@ -215,7 +242,6 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alp
       cout << "Corr time : 0 ms\n" ;
       cout << "Corr comms : 0 bytes\n" ;
     }
-    return ohe ;
   }
 
   /************************* Declare and Init *************************/
@@ -223,6 +249,10 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alp
   // Declare
   int ohe_size = 1 << n ; int num_ots = ohe_size - n - 1 ;
   block *hot = new block[num_blocks] ;
+  block *r0 = new block[num_ots] ;
+  block *r1 = new block[num_ots] ;
+  block *rcv_ot = new block[num_ots] ;
+  bool *b = new bool[num_ots] ; prg.random_bool(b, num_ots) ;
 
   // Initialize
   initialize_blocks(hot, num_blocks) ;
@@ -232,10 +262,6 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alp
   /************************* Preparing metadata for GMT to OHE conversion  *************************/
 
   // Declare variables
-  block *r0 = new block[num_ots] ;
-  block *r1 = new block[num_ots] ;
-  block *rcv_ot = new block[num_ots] ;
-  bool *b = new bool[num_ots] ; prg.random_bool(b, num_ots) ;
   unordered_map<int, vector<vector<int>>> mp ; 		// length of subset -> all subset of that length
 	unordered_map<int, int> singleton_gmt ;         // hot index        -> first element of the subset
   unordered_map<int, int> remaining_gmt ;         // hot index        -> hot index of tail
@@ -243,30 +269,7 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alp
   vector<int> conv_right1 ;
   vector<vector<int>> conv_right2 ;
 
-  // Populate metadata
-  mp = get_subsets(n) ;
-  for (int i = 1 ; i < n+1 ; i++) {
-    for (int j = 0 ; j < (int)mp[i].size() ; j++) {
-      vector<int> vec = mp[i][j] ;
-      int totrnk = total_rank(vec, n) ;
-      singleton_gmt[totrnk] = vec[0] ; 
-      vector<int> cop = vec ; cop.erase(cop.begin()) ; 
-      int remrnk = total_rank(cop, n) ;
-      remaining_gmt[totrnk] = remrnk ;
-
-      int rem_ohe_index = 0, ohe_index ;
-			for (auto it1 = cop.begin() ; it1 != cop.end() ; it1++)
-				rem_ohe_index += 1 << *it1 ;
-			ohe_index = rem_ohe_index + (1 << vec[0]) ;
-
-      ohe_index = (1 << n) - ohe_index - 1 ;
-			rem_ohe_index = (1 << n) - rem_ohe_index - 1 ;
-      vector<int> ranks = get_ohe_ranks(cop, n, vec[0]) ;
-      conv_left.push_back(ohe_index) ;
-      conv_right1.push_back(rem_ohe_index) ;
-      conv_right2.push_back(ranks) ;
-    }
-  }
+  get_conv_metadata(n, mp, singleton_gmt, remaining_gmt, conv_left, conv_right1, conv_right2) ;
 
   /************************* Perform Random OTs *************************/
 
@@ -402,12 +405,9 @@ block* random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alp
     cout << fixed << setprecision(MEASUREMENT_PRECISION) << "Corr time : " << running_time/1e3 << " ms\n" ;
     cout << "Corr comms : " << (ot1->io->counter - running_comms) << " bytes\n" ;
   }
-
-  // Return
-  return ohe ;
 }
 
-block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, block **alphas, bool measure) {
+void batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, block **alphas, block **ohes, bool measure) {
   // Start measurement counters
   long long running_time ;
   uint64_t running_comms = ot1->io->counter ;
@@ -416,9 +416,7 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
 
   // Declare
   PRG prg ;
-  int num_blocks = get_ohe_blocks(n) ;
   bool *first_bools = new bool[batch_size] ;
-  block **ohes = new block*[batch_size] ;
 
   // Initialize
   prg.random_bool(first_bools, batch_size) ;
@@ -426,9 +424,6 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
     if(first_bools[b])
       SET_BIT(alphas[b], 0) ;
   for (int b = 0 ; b < batch_size ; b++) {
-    ohes[b] = new block[num_blocks] ;
-    initialize_blocks(ohes[b], num_blocks) ;
-
     if (party == ALICE)
       SET_BIT(ohes[b], first_bools[b] ? 1 : 0) ;
     else {
@@ -448,7 +443,6 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
       cout << "Corr time : 0 ms\n" ;
       cout << "Corr comms : 0 bytes\n" ;
     }
-    return ohes ;
   }
 
   /************************* Declare and Init *************************/
@@ -628,12 +622,9 @@ block** batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, CO
     cout << fixed << setprecision(MEASUREMENT_PRECISION) << "Corr time : " << running_time/1e3 << " ms\n" ;
     cout << "Corr comms : " << (ot1->io->counter - running_comms) << " bytes\n" ;
   } 
-
-  // Return
-  return ohes ;
 }
 
-block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, block **alphas, bool measure) {
+void batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, COT<NetIO> *ot2, block **alphas, block **ohes, bool measure) {
   // Start measurement counters
   long long running_time ;
   uint64_t running_comms = ot1->io->counter ;
@@ -643,13 +634,10 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   // Declare
   PRG prg ;
   int num_blocks = get_ohe_blocks(n) ;
-  block **ohes = new block*[batch_size] ;
   bool **single_bools = new bool*[batch_size] ;
 
   // Initialize
   for (int b = 0 ; b < batch_size ; b++) {
-    ohes[b] = new block[num_blocks] ;
-    initialize_blocks(ohes[b], num_blocks) ;
     single_bools[b] = new bool[n] ;
     prg.random_bool(single_bools[b], n) ;
     for (int i = 0 ; i < n ; i++)
@@ -677,7 +665,6 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
       cout << "Corr time : 0 ms\n" ;
       cout << "Corr comms : 0 bytes\n" ;
     }
-    return ohes ;
   }
 
   /************************* Declare and Init *************************/
@@ -710,30 +697,7 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
   vector<int> conv_right1 ;
   vector<vector<int>> conv_right2 ;
 
-  // Populate metadata
-  mp = get_subsets(n) ;
-  for (int i = 1 ; i < n+1 ; i++) {
-    for (int j = 0 ; j < (int)mp[i].size() ; j++) {
-      vector<int> vec = mp[i][j] ;
-      int totrnk = total_rank(vec, n) ;
-      singleton_gmt[totrnk] = vec[0] ; 
-      vector<int> cop = vec ; cop.erase(cop.begin()) ; 
-      int remrnk = total_rank(cop, n) ;
-      remaining_gmt[totrnk] = remrnk ;
-
-      int rem_ohe_index = 0, ohe_index ;
-      for (auto it1 = cop.begin() ; it1 != cop.end() ; it1++)
-        rem_ohe_index += 1 << *it1 ;
-      ohe_index = rem_ohe_index + (1 << vec[0]) ;
-
-      ohe_index = (1 << n) - ohe_index - 1 ;
-      rem_ohe_index = (1 << n) - rem_ohe_index - 1 ;
-      vector<int> ranks = get_ohe_ranks(cop, n, vec[0]) ;
-      conv_left.push_back(ohe_index) ;
-      conv_right1.push_back(rem_ohe_index) ;
-      conv_right2.push_back(ranks) ;
-    }
-  }
+  get_conv_metadata(n, mp, singleton_gmt, remaining_gmt, conv_left, conv_right1, conv_right2) ;
 
   /************************* Perform Random OTs  *************************/
 
@@ -881,7 +845,4 @@ block** batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, CO
     cout << fixed << setprecision(MEASUREMENT_PRECISION) << "Corr time : " << running_time/1e3 << " ms\n" ;
     cout << "Corr comms : " << (ot1->io->counter - running_comms) << " bytes\n" ;
   }
-  
-  // Return
-  return ohes ;
 }

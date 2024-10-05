@@ -49,6 +49,7 @@ int main(int argc, char** argv) {
       exit(EXIT_FAILURE) ;
     }
   }
+  int num_blocks = get_ohe_blocks(n) ;
   
   /************************* Create OT *************************/
 
@@ -71,20 +72,22 @@ int main(int argc, char** argv) {
 
   if (batched) {
     // Declare and initialize
-    block **ohes, **alphas ;
-    // --> Initialize ohes for outvar
+    block **alphas, **ohes ;
     alphas = new block*[batch_size] ;
+    ohes = new block*[batch_size] ;
     for (int b = 0 ; b < batch_size ; b++) {
       alphas[b] = new block[1] ;
+      ohes[b] = new block[num_blocks] ;
       initialize_blocks(alphas[b], 1) ;
-    }
+      initialize_blocks(ohes[b], num_blocks) ;
+    } 
       
     // Get OHEs
     auto total_start = clock_start() ;
     if (prot_type == "ohe")
-      ohes = batched_random_ohe(party, n, batch_size, ot1, ot2, alphas, true) ;
+      batched_random_ohe(party, n, batch_size, ot1, ot2, alphas, ohes, true) ;
     else if (prot_type == "gmt")
-      ohes = batched_random_gmt(party, n, batch_size, ot1, ot2, alphas, true) ;
+      batched_random_gmt(party, n, batch_size, ot1, ot2, alphas, ohes, true) ;
     else {
       cerr << "Incorrect OT type\n" ;
       exit(EXIT_FAILURE) ;
@@ -103,9 +106,10 @@ int main(int argc, char** argv) {
   }
   else {
     block *ohe, *alpha ;
-    // --> Initialize ohe for outvar
     alpha = new block[1] ;
+    ohe = new block[num_blocks] ;
     initialize_blocks(alpha, 1) ;
+    initialize_blocks(ohe, num_blocks) ;
 
     /************************* Fixed cost measurer *************************/
 
@@ -135,9 +139,9 @@ int main(int argc, char** argv) {
     // Get OHE
     auto total_start = clock_start() ;
     if (prot_type == "ohe")
-      ohe = random_ohe(party, n, ot1, ot2, alpha, true) ;
+      random_ohe(party, n, ot1, ot2, alpha, ohe, true) ;
     else if (prot_type == "gmt")
-      ohe = random_gmt(party, n, ot1, ot2, alpha, true) ;
+      random_gmt(party, n, ot1, ot2, alpha, ohe, true) ;
     else {
       cerr << "Incorrect protocol type\n" ;
       exit(EXIT_FAILURE) ;

@@ -2,7 +2,7 @@
 
 if [[ $# == 1 ]] then
   if [ "$1" = "--help" ] ; then
-    printf "$0 <party> <port> <iknp/ferret> <ohe/gmt> <start> <end> <batch_size>\n"
+    printf "$0 <party> <port> <iknp/ferret> <ohe/gmt> <start> <end>\n"
     exit ;
   else
     printf "Run '$0 --help' for menu\n"
@@ -11,14 +11,15 @@ if [[ $# == 1 ]] then
   exit ;
 fi
 
-if [[ $# != 7 ]] then
+if [[ $# != 6 ]] then
   printf "Correct usage -\n"
-  printf "$0 <party> <port> <iknp/ferret> <ohe/gmt> <start> <end> <batch_size>\n"
+  printf "$0 <party> <port> <iknp/ferret> <ohe/gmt> <start> <end>\n"
   exit
 fi
+
 
 for n in $(seq $5 $6);
 do
   printf "n = $n\n" 
-  ./../build/bin/test_ohe $1 $2 $n $3 $4 1 $7
+  ./../build/bin/verify_ohe $1 $2 $n $3 $4 0
 done
