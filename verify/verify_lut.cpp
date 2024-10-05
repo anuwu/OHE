@@ -198,6 +198,7 @@ int main(int argc, char** argv) {
 
     // Do secure evaluation
     block *reconst_otp = new block[m_blocks] ; initialize_blocks(reconst_otp, m_blocks) ;
+    func.secure_eval(party, n, ot1, ot2, inp_share, ohe, alpha, reconst_otp) ;
 
     // Check validity
     block *reconst_inp = new block[1] ; initialize_blocks(reconst_inp, 1) ;

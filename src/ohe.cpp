@@ -80,6 +80,8 @@ void random_ohe(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alpha
       cout << "Corr time : 0 ms\n" ;
       cout << "Corr comms : 0 bytes\n" ;
     }
+
+    return ;
   }
 
   /************************* Declare *************************/
@@ -222,7 +224,8 @@ void random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alpha
   // Initialize
   prg.random_bool(single_bools, n) ;
   for (int i = 0 ; i < n ; i++)
-    SET_BIT(alpha, i) ;
+    if (single_bools[i])
+      SET_BIT(alpha, i) ;
 
   // Handle base case
   if (n == 1) {
@@ -242,6 +245,8 @@ void random_gmt(int party, int n, COT<NetIO> *ot1, COT<NetIO> *ot2, block *alpha
       cout << "Corr time : 0 ms\n" ;
       cout << "Corr comms : 0 bytes\n" ;
     }
+
+    return ;
   }
 
   /************************* Declare and Init *************************/
@@ -443,6 +448,8 @@ void batched_random_ohe(int party, int n, int batch_size, COT<NetIO> *ot1, COT<N
       cout << "Corr time : 0 ms\n" ;
       cout << "Corr comms : 0 bytes\n" ;
     }
+
+    return ;
   }
 
   /************************* Declare and Init *************************/
@@ -665,6 +672,8 @@ void batched_random_gmt(int party, int n, int batch_size, COT<NetIO> *ot1, COT<N
       cout << "Corr time : 0 ms\n" ;
       cout << "Corr comms : 0 bytes\n" ;
     }
+
+    return ;
   }
 
   /************************* Declare and Init *************************/
