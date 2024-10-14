@@ -184,8 +184,8 @@ void LUT::batched_secure_eval(int party, int n, int batch_size, COT<NetIO> *ot1,
   for (int b = 0 ; b < batch_size ; b++) {
     reconst_masked_inps[b] = new block[1] ;
     initialize_blocks(reconst_masked_inps[b], 1) ;
-    reconst(party, ot1, ot2, n, masked_inps[b], reconst_masked_inps[b]) ;
   }
+  reconst_flat(party, ot1, ot2, n, batch_size, masked_inps, reconst_masked_inps) ;
 
   // Print stuff
   running_time = time_from(start_exp) ;
@@ -205,8 +205,7 @@ void LUT::batched_secure_eval(int party, int n, int batch_size, COT<NetIO> *ot1,
   }
     
   // Send and receive f(t)
-  for (int b = 0 ; b < batch_size ; b++)
-    reconst(party, ot1, ot2, this->m, otp_shares[b], outputs[b]) ;
+  reconst_flat(party, ot1, ot2, n, batch_size, otp_shares, outputs) ;
 
   // End measurement for evaluation
   running_time = time_from(start_exp) ;

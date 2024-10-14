@@ -189,7 +189,9 @@ inline block right_shift(const block &blk, int shift) {
     mask = mask & data[1] ;
 
     // Shifting data[0] and pasting from data[1]
+    // cout << "This is data[0] = " << hex << setw(16) << setfill('0') << data[0] << "\n" ;
     dat0 = data[0] >> shift ;
+    mask = mask << (64 - shift) ;
     dat0 = dat0 ^ mask ;
 
     // Shifting data[1] and return
@@ -198,30 +200,7 @@ inline block right_shift(const block &blk, int shift) {
   }
 }
 
-inline void copyBits(block *to, int pos1, block *from, int pos2, int bits) {
-  if (pos1+bits-1>127 || pos2+bits-1>127)
-    cout << "ALARM!\n" ;
-
-  block mask1 = zero_block ;
-  for (int ind1 = 0 ; ind1 < 128 ; ind1++)
-    if (ind1 < pos1 || ind1 > pos1 + bits - 1)
-      mask1 = set_bit(mask1, ind1) ;
-  andBlocks_arr(to, mask1, 1) ;
-
-  block mask2 = zero_block ;
-  int ind2 = pos2 ;
-  while (ind2 < pos2 + bits) {
-    mask2 = set_bit(mask2, ind2) ;
-    ind2++ ;
-  }
-  andBlocks_arr(&mask2, from, 1) ;
-  if (pos1 > pos2)
-    mask2 = left_shift(mask2, pos1 - pos2) ;
-  else
-    mask2 = right_shift(mask2, pos2 - pos1) ;
-
-  xorBlocks_arr(to, &mask2, 1) ;
-}
+void copyBits(block *to, int pos1, block *from, int pos2, int bits) ;
 
 /************************* GMT to OHE Conversion *************************/
 
@@ -247,6 +226,8 @@ unordered_map<int, NetIO*> get_pairwise_channels(int party, int parties, int sta
 unordered_map<int, NetIO*> get_pairwise_channels_threaded(int party, int parties, int start_port) ;
 
 /************************* Other utilities *************************/
+
+void reconst_flat(int party, COT<NetIO> *ot1, COT<NetIO> *ot2, int bits, int batch_size, block **shares, block **rec) ;
 
 void reconst(int party, COT<NetIO> *ot1, COT<NetIO> *ot2, int bits, block *share, block *rec) ;
 

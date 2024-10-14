@@ -98,6 +98,12 @@ void test2(int argc, char** argv) {
   int pos2 = atoi(argv[3]) ;
   int bits = atoi(argv[4]) ;
 
+  // Single check
+  if (pos1+bits > 128 || pos2+bits > 128) {
+    cerr << "Please use test3 for contiguous copyBits\n" ;
+    exit(EXIT_FAILURE) ;
+  }
+
   // Initialize blocks
   PRG prg ;
   block *blk1 = new block[1] ;
@@ -105,11 +111,15 @@ void test2(int argc, char** argv) {
   prg.random_block(blk1, 1) ;
   prg.random_block(blk2, 1) ;
 
-  // Print stuff
+  // Print before
   cout << "Before Copy - \n" ;
   cout << *blk1 << "\n" ;
   cout << *blk2 << "\n" ;
+
+  // Do the copy
   copyBits(blk1, pos1, blk2, pos2, bits) ;
+
+  // Print after
   cout << "\nAfter Copy - \n" ;
   cout << *blk1 << "\n" ;
   cout << *blk2 << "\n" ;
@@ -119,8 +129,63 @@ void test2(int argc, char** argv) {
   delete[] blk2 ;
 }
 
-// set_bit test
+// contiguous copyBits test
 void test3(int argc, char** argv) {
+  // Abort message
+  const auto abort = [&] {
+    cerr << "usage: " << argv[0] << " 3 <num_blocks> <pos1> <pos2> <bits>\n" ;
+    exit(EXIT_FAILURE);
+  } ;
+  if (argc != 6)
+    abort() ;
+
+  // Read arguments
+  int num_blocks = atoi(argv[2]) ;
+  int pos1 = atoi(argv[3]) ;
+  int pos2 = atoi(argv[4]) ;
+  int bits = atoi(argv[5]) ;
+
+  // Contiguous check
+  if ((pos1+bits <= 128 && pos2+bits <= 128) || num_blocks == 1) {
+    cerr << "Please use test2 for non-contiguous copyBits test\n" ;
+    exit(EXIT_FAILURE) ;
+  }
+
+  // Initialize blocks
+  PRG prg ;
+  block *blk1 = new block[num_blocks] ;
+  block *blk2 = new block[num_blocks] ;
+  prg.random_block(blk1, num_blocks) ;
+  prg.random_block(blk2, num_blocks) ;
+
+  // Print before
+  cout << "Before Copy - \n" ;
+  for (int i = num_blocks-1 ; i >= 0 ; i--)
+    cout << blk1[i] << " | " ;
+  cout << "\n" ;
+  for (int i = num_blocks-1 ; i >= 0 ; i--)
+    cout << blk2[i] << " | " ;
+  cout << "\n" ;
+
+  // Do the copy
+  copyBits(blk1, pos1, blk2, pos2, bits) ;
+
+  // Print after
+  cout << "After Copy - \n" ;
+  for (int i = num_blocks-1 ; i >= 0 ; i--)
+    cout << blk1[i] << " | " ;
+  cout << "\n" ;
+  for (int i = num_blocks-1 ; i >= 0 ; i--)
+    cout << blk2[i] << " | " ;
+  cout << "\n" ;
+
+  // Delete stuff
+  delete[] blk1 ;
+  delete[] blk2 ;
+}
+
+// set_bit test
+void test4(int argc, char** argv) {
   // Abort message
   const auto abort = [&] {
     cerr << "usage: " << argv[0] << " 3 <pos>\n" ;
@@ -147,7 +212,7 @@ void test3(int argc, char** argv) {
 }
 
 // testBit test
-void test4(int argc, char** argv) {
+void test5(int argc, char** argv) {
   // Abort message
   const auto abort = [&] {
     cerr << "usage: " << argv[0] << " 4 <pos>\n" ;
@@ -175,7 +240,7 @@ void test4(int argc, char** argv) {
 }
 
 // zero-wrap over test
-void test5(int argc, char** argv) {
+void test6(int argc, char** argv) {
   // Abort message
   const auto abort = [&] {
     cerr << "usage: " << argv[0] << " 5\n" ;
@@ -212,19 +277,24 @@ int main(int argc, char** argv) {
     test2(argc, argv) ;
     break ;
 
-  // set_bit test
+  // copyBits contiguous test
   case 3 :
     test3(argc, argv) ;
     break ;
 
-  // testBit test
+  // set_bit test
   case 4 :
     test4(argc, argv) ;
     break ;
 
-  // zero wrap-over test
+  // testBit test
   case 5 :
     test5(argc, argv) ;
+    break ;
+
+  // zero wrap-over test
+  case 6 :
+    test6(argc, argv) ;
     break ;
 
   default :
