@@ -19,6 +19,6 @@ fi
 
 for n in $(seq $4 $5);
 do
-  printf "n = $n\n" 
+  printf "n = $n ---\n" 
   ./../build/bin/bench_fixed $1 $2 $n $3
 done

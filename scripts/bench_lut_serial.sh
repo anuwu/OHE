@@ -19,6 +19,6 @@ fi
 
 for n in $(seq $5 $6);
 do
-  printf "n = $n\n" 
+  printf "n = $n ---\n" 
   ./../build/bin/bench_lut $1 $2 $n $n $3 $4 id 0
 done

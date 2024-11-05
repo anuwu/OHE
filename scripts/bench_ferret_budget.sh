@@ -19,6 +19,6 @@ fi
 
 for n in $(seq $6 $7);
 do
-  printf "n = $n\n" 
+  printf "n = $n ---\n" 
   ./../build/bin/bench_ferret_budget $1 $2 $n $3 $4 $5
 done
