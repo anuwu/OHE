@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
 
     long long t_exp = time_from(start_exp) ;  
     comm_var = io->counter - comm_var ;
-    cout << fixed << setprecision(5) << "Total time : " << double(t_exp)/(1e3*batch_size) << " ms\n" ;
+    cout << fixed << setprecision(5) << "Total time : " << double(t_exp)/1e3 << " ms\n" ;
     cout << "Total Comms : " << comm_var << " bytes\n" ;
           
     // Delete stuff

@@ -111,29 +111,6 @@ int main(int argc, char** argv) {
     initialize_blocks(alpha, 1) ;
     initialize_blocks(ohe, num_blocks) ;
 
-    /************************* Fixed cost measurer *************************/
-
-    // block *b1 = new block[100] ;
-    // block *b2 = new block[100] ;
-    // block *recv = new block[100] ;
-    // bool *choices = new bool[100] ;
-
-    // // Measure
-    // auto start_dummy = clock_start(); 
-    // if (party == ALICE) {
-    //   ot1->send_rot(b1, b2, 100) ;
-    //   ot2->recv_rot(recv, choices, 100) ;
-    // } else {
-    //   ot1->recv_rot(recv, choices, 100) ;
-    //   ot2->send_rot(b1, b2, 100) ;
-    // }
-    // long long t_dummy = time_from(start_dummy) ;
-    // int64_t dummy_comms = ot1->io->counter - comm_var ; comm_var = ot1->io->counter ;
-
-    // // Print things
-    // cout << "Dummy comms : " << dummy_comms << " bytes\n" ;
-    // cout << "Dummy time : " << double(t_dummy)/1e3 << " ms\n" ;
-
     /************************* Real stuff *************************/
 
     // Get OHE
