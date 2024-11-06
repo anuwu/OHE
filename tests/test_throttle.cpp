@@ -11,22 +11,18 @@ int main(int argc, char** argv) {
   /************************* Parse Input *************************/
   
   const auto abort = [&] {
-	cerr
-    << "usage: "
-    << argv[0]
-    << "<party>"
-    << "<port>"
-    << "\n";
-	exit(EXIT_FAILURE);
+		cerr << "usage : " << argv[0] << " <party>" << " <port>" << " <ip>\n" ;
+		exit(EXIT_FAILURE);
 	} ;
 
-	if (argc != 3)
+	if (argc != 4)
 		abort() ;
 
 	int party = atoi(argv[1]) ;
 	int port = atoi(argv[2]) ;
+	const char *ip = argv[3] ;
 	NetIO *io ;
-	io = new NetIO(party == ALICE ? nullptr : "127.0.0.1", port) ;
+	io = new NetIO(party == ALICE ? nullptr : ip, port) ;
 
 	block *data = new block[10000000] ;
 	block *rcv = new block[10000000] ;
