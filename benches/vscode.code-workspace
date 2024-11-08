@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../emp-ot"
+		},
+		{
+			"path": "../../emp-tool"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"new": "cpp",
+			"iomanip": "cpp",
+			"iostream": "cpp",
+			"vector": "cpp"
+		}
+	}
+}

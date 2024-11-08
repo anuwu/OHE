@@ -14,35 +14,37 @@ int main(int argc, char** argv) {
     cerr
       << "usage: "
       << argv[0]
-      << " <party-id> <port> <n> <ohe/gmt> <batch_size> <budget_mb> \n" ;
+      << " <party-id> <port> <ip> <n> <ohe/gmt> <batch_size> <budget_mb> \n" ;
     exit(EXIT_FAILURE);
    };
 
   // Declare variables
   int party, port, n, num_blocks ;
+  char *ip ;
   int batch_size ;
   int budget_mb ;
   string prot_type ;
   uint64_t budget_bytes ;
 
   // Check command line arguments
-  if (argc != 7)
+  if (argc != 8)
     abort() ;
   
   // Parse arguments
   party = atoi(argv[1]) ;
   port = atoi(argv[2]) ;
-  n = atoi(argv[3]) ;
-  prot_type = argv[4] ;
-  batch_size = atoi(argv[5]) ;
-  budget_mb = atoi(argv[6]) ;
+  ip = argv[3] ;
+  n = atoi(argv[4]) ;
+  prot_type = argv[5] ;
+  batch_size = atoi(argv[6]) ;
+  budget_mb = atoi(argv[7]) ;
   budget_bytes = budget_mb*1024*1024 ;
   num_blocks = get_ohe_blocks(n) ;
 
   // Declare OT stuff
   NetIO *io ;
   COT<NetIO> *ot1, *ot2 ;
-  io = new NetIO(party == ALICE ? nullptr : "127.0.0.1", port, true) ;
+  io = new NetIO(party == ALICE ? nullptr : ip, port, true) ;
   ot1 = new FerretCOT<NetIO>(party, 1, &io) ;
   ot2 = new FerretCOT<NetIO>(party == 1 ? 2 : 1, 1, &io) ;
 

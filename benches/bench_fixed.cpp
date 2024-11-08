@@ -5,14 +5,14 @@
 using namespace std ;
 using namespace emp ;
 
-void get_cost(int party, int port, string ot_type, uint64_t num_ots, long long &time, uint64_t &comm, bool silent=false) {
+void get_cost(int party, int port, const char *ip, string ot_type, uint64_t num_ots, long long &time, uint64_t &comm, bool silent=false) {
   // Declare variables
   PRG prg ;
   NetIO *io ;
   COT<NetIO> *ot1, *ot2 ; 
 
   // Setup OT stuff
-  io = new NetIO(party == ALICE ? nullptr : "127.0.0.1", port, true) ;
+  io = new NetIO(party == ALICE ? nullptr : ip, port, true) ;
   uint64_t running_comm = io->counter ;
   uint64_t pre_comm ;
   auto total_start = clock_start() ;
@@ -72,32 +72,34 @@ int main(int argc, char** argv) {
     cerr
       << "usage: "
       << argv[0]
-      << " <party-id> <port> <n> <iknp/ferret> \n";
+      << " <party-id> <port> <ip> <n> <iknp/ferret> \n";
     exit(EXIT_FAILURE);
    };
 
   // Declare variables
   int party, port, n ;
+  char *ip ;
   string ot_type ;
 
   // Check command line arguments
-  if (argc != 5)
+  if (argc != 6)
     abort() ;
   
   // Parse arguments
   party = atoi(argv[1]) ;
   port = atoi(argv[2]) ;
-  n = atoi(argv[3]) ;
-  ot_type = argv[4] ;
+  ip = argv[3] ;
+  n = atoi(argv[4]) ;
+  ot_type = argv[5] ;
 
   /************************* Experiment *************************/
 
   long long time ;
   uint64_t comm ;
   if (ot_type == "iknp")
-    get_cost(party, port, ot_type, 128ULL*n, time, comm) ;
+    get_cost(party, port, ip, ot_type, 128ULL*n, time, comm) ;
   else if (ot_type == "ferret")
-    get_cost(party, port, ot_type, 1ULL<<n, time, comm) ;
+    get_cost(party, port, ip, ot_type, 1ULL<<n, time, comm) ;
   cout << fixed << setprecision(MEASUREMENT_PRECISION) << "Fixed time : " << time/1e3 << " ms\n" ;
   cout << "Fixed comm : " << comm << " bytes\n" ;
 

@@ -14,26 +14,27 @@ int main(int argc, char** argv) {
     cerr
       << "usage: "
       << argv[0]
-      << " <party> <port> <n> <iknp/ferret> <ohe/gmt> <batched> <opt:batch_size> \n";
+      << " <party> <port> <ip> <n> <iknp/ferret> <ohe/gmt> <batched> <opt:batch_size> \n";
     exit(EXIT_FAILURE);
    };
 
   // Declare variables
   int party, port, n, batch_size ;
+  char *ip ;
   string ot_type, prot_type ;
   bool batched ;
   NetIO *io ;
   COT<NetIO> *ot1, *ot2 ;
 
   // Check command line arguments
-  if (argc < 7)
+  if (argc < 8)
     abort() ;
-  else if (argc == 7) {
-    if (atoi(argv[6]))
+  else if (argc == 8) {
+    if (atoi(argv[7]))
       abort() ;
   }
-  else if (argc == 8) {
-    if (!atoi(argv[6]))
+  else if (argc == 9) {
+    if (!atoi(argv[7]))
       abort() ;
   }
   else
@@ -42,12 +43,13 @@ int main(int argc, char** argv) {
   // Parse arguments
   party = atoi(argv[1]) ;
   port = atoi(argv[2]) ;
-  n = atoi(argv[3]) ;
-  ot_type = argv[4] ;
-  prot_type = argv[5] ;
-  batched = atoi(argv[6]) ;
+  ip = argv[3] ;
+  n = atoi(argv[4]) ;
+  ot_type = argv[5] ;
+  prot_type = argv[6] ;
+  batched = atoi(argv[7]) ;
   if (batched) {
-    batch_size = atoi(argv[7]) ;
+    batch_size = atoi(argv[8]) ;
     if (batch_size % 128 > 0) {
       cerr << "Batch size must be a multiple of 128\n" ;
       exit(EXIT_FAILURE) ;
@@ -56,7 +58,7 @@ int main(int argc, char** argv) {
   
   /************************* Create OT *************************/
 
-  io = new NetIO(party == ALICE ? nullptr : "127.0.0.1", port, true) ;
+  io = new NetIO(party == ALICE ? nullptr : ip, port, true) ;
   if (ot_type == "iknp") {
     ot1 = new IKNP<NetIO>(io) ;
     ot2 = new IKNP<NetIO>(io) ;

@@ -13,42 +13,58 @@ int main(int argc, char** argv) {
     cerr
       << "usage: "
       << argv[0]
-      << " <party> <port> <n> <m> <iknp/ferret> <ohe/gmt> <lut_name> <batched> <opt:batch_size>\n";
+      << " <party> <port> <ip> <n> <m> <iknp/ferret> <ohe/gmt> <lut_name> <batched> <opt:batch_size>\n";
+
+    cerr << "I am getting : " ;
+    for (int i = 1 ; i < argc ; i++)
+      cerr << argv[i] << " " ;
+    cerr << "\n" ;
     exit(EXIT_FAILURE);
   } ;
 
   // Declare variables
   int party, port, n, m, batch_size ;
+  char *ip ;
   string ot_type, prot_type, lut_name ;
   bool batched ;
   NetIO *io ;
   COT<NetIO> *ot1, *ot2 ;
 
   // Check command line arguments
-  if (argc < 9)
+  if (argc < 10) {
+    cout << "ABORT 1\n" ;
     abort() ;
-  else if (argc == 9) {
-    if (atoi(argv[8]))
-      abort() ;
   }
+    
   else if (argc == 10) {
-    if (!atoi(argv[8]))
+    if (atoi(argv[9])) {
+      cout << "ABORT 2\n" ;
       abort() ;
+    }
   }
-  else
+  else if (argc == 11) {
+    if (!atoi(argv[9])) {
+      cout << "ABORT 3\n" ;
+      abort() ;
+    }
+  }
+  else {
+    cout << "ABORT 4\n" ;
     abort() ;
+  }
     
   // Parse arguments
   party = atoi(argv[1]) ;
   port = atoi(argv[2]) ;
-  n = atoi(argv[3]) ;
-  m = atoi(argv[4]) ;
-  ot_type = argv[5] ;
-  prot_type = argv[6] ;
-  lut_name = argv[7] ;
-  batched = atoi(argv[8]) ;
+  ip = argv[3] ;
+  n = atoi(argv[4]) ;
+  m = atoi(argv[5]) ;
+  ot_type = argv[6] ;
+  prot_type = argv[7] ;
+  lut_name = argv[8] ;
+  batched = atoi(argv[9]) ;
   if (batched) {
-    batch_size = atoi(argv[9]) ;
+    batch_size = atoi(argv[10]) ;
     if (batch_size % 128 > 0) {
       cerr << "Batch size must be a multiple of 128\n" ;
       exit(EXIT_FAILURE) ;
@@ -57,7 +73,7 @@ int main(int argc, char** argv) {
   
   /************************* Create OT *************************/
 
-  io = new NetIO(party == ALICE ? nullptr : "127.0.0.1", port, true) ;
+  io = new NetIO(party == ALICE ? nullptr : ip, port, true) ;
   if (ot_type == "iknp") {
     ot1 = new IKNP<NetIO>(io) ;
     ot2 = new IKNP<NetIO>(io) ;
