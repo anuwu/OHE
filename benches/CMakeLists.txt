@@ -9,3 +9,6 @@ target_link_libraries(bench_fixed EMP-OHE)
 
 add_executable(bench_ferret_budget "bench_ferret_budget.cpp")
 target_link_libraries(bench_ferret_budget EMP-OHE)
+
+add_executable(bench_ferret_budget_time "bench_ferret_budget_time.cpp")
+target_link_libraries(bench_ferret_budget_time EMP-OHE)
