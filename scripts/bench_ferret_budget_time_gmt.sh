@@ -2,7 +2,7 @@
 
 if [[ $# == 1 ]] then
   if [ "$1" = "--help" ] ; then
-    printf "$0 <party> <port> <ip> <ohe/gmt>\n"
+    printf "$0 <party> <port> <ip>\n"
     exit ;
   else
     printf "Run '$0 --help' for menu\n"
@@ -11,41 +11,41 @@ if [[ $# == 1 ]] then
   exit ;
 fi
 
-if [[ $# != 4 ]] then
+if [[ $# != 3 ]] then
   printf "Correct usage -\n"
-  printf "$0 <party> <port> <ip> <ohe/gmt>\n"
+  printf "$0 <party> <port> <ip>\n"
   exit
 fi
 
 printf "n = 2 ---\n" 
-./../build/bin/bench_ferret_budget_time $1 $2 $3 2 $4 162382
+./../build/bin/bench_ferret_budget_time $1 $2 $3 2 gmt 162382
 
 printf "n = 3 ---\n" 
-./../build/bin/bench_ferret_budget_time $1 $2 $3 3 $4 40914
+./../build/bin/bench_ferret_budget_time $1 $2 $3 3 gmt 40914
 
 printf "n = 4 ---\n" 
-./../build/bin/bench_ferret_budget_time $1 $2 $3 4 $4 14903
+./../build/bin/bench_ferret_budget_time $1 $2 $3 4 gmt 14903
 
 printf "n = 5 ---\n"
-./../build/bin/bench_ferret_budget_time $1 $2 $3 5 $4 6314
+./../build/bin/bench_ferret_budget_time $1 $2 $3 5 gmt 6314
 
 printf "n = 6 ---\n" 
-./../build/bin/bench_ferret_budget_time $1 $2 $3 6 $4 2878
+./../build/bin/bench_ferret_budget_time $1 $2 $3 6 gmt 2878
 
 printf "n = 7 ---\n" 
-./../build/bin/bench_ferret_budget_time $1 $2 $3 7 $4 1369
+./../build/bin/bench_ferret_budget_time $1 $2 $3 7 gmt 1369
 
 printf "n = 8 ---\n" 
-./../build/bin/bench_ferret_budget_time $1 $2 $3 8 $4 666
+./../build/bin/bench_ferret_budget_time $1 $2 $3 8 gmt 666
 
 printf "n = 9 ---\n" 
-./../build/bin/bench_ferret_budget_time $1 $2 $3 9 $4 332
+./../build/bin/bench_ferret_budget_time $1 $2 $3 9 gmt 332
 
 printf "n = 10 ---\n" 
-./../build/bin/bench_ferret_budget_time $1 $2 $3 10 $4 168
+./../build/bin/bench_ferret_budget_time $1 $2 $3 10 gmt 168
 
 printf "n = 11 ---\n" 
-./../build/bin/bench_ferret_budget_time $1 $2 $3 11 $4 83
+./../build/bin/bench_ferret_budget_time $1 $2 $3 11 gmt 83
 
 printf "n = 12 ---\n" 
-./../build/bin/bench_ferret_budget_time $1 $2 $3 12 $4 42
+./../build/bin/bench_ferret_budget_time $1 $2 $3 12 gmt 42
