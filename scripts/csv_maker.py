@@ -73,20 +73,26 @@ def get_dataframe(filename) :
 
 if __name__ == "__main__" :
   no_args = len(sys.argv)
+  input_filename, output_filename = None, None
   if no_args != 3 :
     if no_args < 2 :
       print("Correct usage - ")
       print("python " + sys.argv[0] + " <input> <output>")
     elif no_args == 2 :
-      if sys.argv[1] != "--help" :
-        print("Correct usage - ")
-      print("python " + sys.argv[0] + " <input> <output>")
+      if sys.argv[1] == "--help" :
+        print("python " + sys.argv[0] + " <input> <output>")
+        exit(0)
+      else :
+        input_filename = sys.argv[1]
+        dot_index = input_filename.find(".")
+        output_filename = input_filename[:dot_index] + ".csv"
     else :
       print("Correct usage - ")
       print("python " + sys.argv[0] + " <input> <output>")
     exit(0)
-
-  input_filename = sys.argv[1]
-  output_filename = sys.argv[2]
+  else :
+    input_filename = sys.argv[1]
+    output_filename = sys.argv[2]
+  
   df = get_dataframe(input_filename)
   df.to_csv(output_filename, index=False)
