@@ -28,12 +28,12 @@ printf "\nBudget Time OHE -\n"
 
 # Budget Time OHE
 printf "\nBudget Time GMT -\n"
-./bench_ferret_budget_time_ohe.sh 2 10000 $1
+./bench_ferret_budget_time_gmt.sh 2 10000 $1
 
 # GMT-Batches Time OHE
-printf "\nBudget Time OHE -\n"
+printf "\nGMT-Batches Time OHE -\n"
 ./bench_ferret_budget_time_ohe.sh 2 10000 $1
 
 # OHE-Batches Time GMT
-printf "\nBudget Time GMT -\n"
-./bench_ferret_budget_time_ohe.sh 2 10000 $1
+printf "\nOHE-Batches Time GMT -\n"
+./bench_ferret_budget_time_gmt.sh 2 10000 $1
