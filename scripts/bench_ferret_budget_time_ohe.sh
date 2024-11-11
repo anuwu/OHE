@@ -17,17 +17,17 @@ if [[ $# != 3 ]] then
   exit
 fi
 
-printf "n = 2 ---\n" 
-./../build/bin/bench_ferret_budget_time $1 $2 $3 2 ohe 162382
+# printf "n = 2 ---\n" 
+# ./../build/bin/bench_ferret_budget_time $1 $2 $3 2 ohe 162382
 
-printf "n = 3 ---\n" 
-./../build/bin/bench_ferret_budget_time $1 $2 $3 3 ohe 65591
+# printf "n = 3 ---\n" 
+# ./../build/bin/bench_ferret_budget_time $1 $2 $3 3 ohe 65591
 
-printf "n = 4 ---\n" 
-./../build/bin/bench_ferret_budget_time $1 $2 $3 4 ohe 30932
+# printf "n = 4 ---\n" 
+# ./../build/bin/bench_ferret_budget_time $1 $2 $3 4 ohe 30932
 
-printf "n = 5 ---\n"
-./../build/bin/bench_ferret_budget_time $1 $2 $3 5 ohe 16496
+# printf "n = 5 ---\n"
+# ./../build/bin/bench_ferret_budget_time $1 $2 $3 5 ohe 16496
 
 printf "n = 6 ---\n" 
 ./../build/bin/bench_ferret_budget_time $1 $2 $3 6 ohe 8375
