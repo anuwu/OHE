@@ -1,7 +1,7 @@
 # Default Project stuff
 cmake_minimum_required (VERSION 3.5)
 project(ohe)
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wformat -Wno-sometimes-uninitialized -Wno-unused-const-variable")
+set(CMAKE_CXX_FLAGS "-std=c++11 -march=native -Wall -Wformat -Wno-sometimes-uninitialized -Wno-unused-const-variable")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src")
 
 message("${CMAKE_CURRENT_LIST_DIR}")
