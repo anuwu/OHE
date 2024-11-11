@@ -84,12 +84,12 @@ if __name__ == "__main__" :
         exit(0)
       else :
         input_filename = sys.argv[1]
-        dot_index = input_filename.find(".")
+        dot_index = input_filename.find(".txt")
         output_filename = input_filename[:dot_index] + ".csv"
     else :
       print("Correct usage - ")
       print("python " + sys.argv[0] + " <input> <output>")
-    exit(0)
+      exit(0)
   else :
     input_filename = sys.argv[1]
     output_filename = sys.argv[2]
