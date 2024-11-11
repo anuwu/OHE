@@ -22,18 +22,18 @@ printf "\nOnline 128 -\n"
 printf "\nOnline 4096 -\n"
 ./bench_lut_batched.sh 1 10000 $1 iknp ohe 4096 2 16 > lut_4096.txt
 
-# Budget Time OHE
-printf "\nBudget Time OHE -\n"
-./bench_ferret_budget_time_ohe.sh 1 10000 $1 > budget_time_ohe.txt
-
 # Budget Time GMT
 printf "\nBudget Time GMT -\n"
 ./bench_ferret_budget_time_gmt.sh 1 10000 $1 > budget_time_gmt.txt
 
 # GMT-Batches Time OHE
 printf "\nGMT-Batches Time OHE -\n"
-./bench_ferret_budget_time_ohe.sh 1 10000 $1 > gmt-batches_time_ohe.txt
+./bench_ferret_gmt-batches_time_ohe.sh 1 10000 $1 > gmt-batches_time_ohe.txt
+
+# Budget Time OHE
+printf "\nBudget Time OHE -\n"
+./bench_ferret_budget_time_ohe.sh 1 10000 $1 > budget_time_ohe.txt
 
 # OHE-Batches Time GMT
 printf "\nOHE-Batches Time GMT -\n"
-./bench_ferret_budget_time_gmt.sh 1 10000 $1 > ohe-batches_time_gmt.txt
+./bench_ferret_ohe-batches_time_gmt.sh 1 10000 $1 > ohe-batches_time_gmt.txt
