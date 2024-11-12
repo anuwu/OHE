@@ -2,7 +2,7 @@
 
 if [[ $# == 1 ]] then
   if [ "$1" = "--help" ] ; then
-    printf "$0 <party> <port> <ip> <ohe/gmt>\n"
+    printf "$0 <party> <port> <ip>\n"
     exit ;
   else
     printf "Run '$0 --help' for menu\n"
@@ -11,9 +11,9 @@ if [[ $# == 1 ]] then
   exit ;
 fi
 
-if [[ $# != 4 ]] then
+if [[ $# != 3 ]] then
   printf "Correct usage -\n"
-  printf "$0 <party> <port> <ip> <ohe/gmt>\n"
+  printf "$0 <party> <port> <ip>\n"
   exit
 fi
 
